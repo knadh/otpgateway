@@ -1,0 +1,65 @@
+{{ define "otp" }}
+    {{ template "header" .}}
+    <h1>{{ .ChannelName }} verification</h1>
+    <p>
+        {{ if .OTP.Description }}
+            {{ .OTP.Description }}
+        {{ else }}
+            {{ .Description }}
+        {{ end }}
+    </p>
+    <form method="post" action="" class="form" id="form">
+        <div>
+            <input type="hidden" name="namespace" value="{{ .OTP.Namespace }}" />
+            <input type="hidden" name="id" value="{{ .OTP.ID }}" />
+            <input type="hidden" name="action" class="action" value="check" />
+            <p>
+                <input autofocus maxlength="{{ .MaxOTPLen }}" type="text" name="otp" value="" class="otp" />
+                <button type="submit">Verify</button>
+            </p>
+
+            {{ if .Message }}
+                <p class="error">{{ .Message }}</p>
+            {{ end }}
+
+            <div class="stats">
+                <span class="attempts">
+                    <span class="pulse">{{ .OTP.Attempts }}</span> / {{ .OTP.MaxAttempts }} attempts
+                </span>
+                &mdash; <span id="time">0</span> seconds remaining
+            </div>
+            <div class="resend">
+                Didn't receive the OTP? <a href="#" id="btn-resend">Resend</a>
+            </div>
+        </div>
+    </form>
+
+    <script>
+        (function() {
+            var ttl = {{ .OTP.TTLSeconds }},
+                ref = document.querySelector("#time");
+            if(!ref) {
+                return
+            }
+            function tick() {
+                ttl = Math.floor(ttl) - 1;
+                if(ttl < 0) {
+                    document.location.reload()
+                    return
+                }
+                ref.innerText = ttl;
+            }
+            tick();
+            window.setInterval(tick, 1000);
+        })();
+
+        (function() {
+            document.querySelector("#btn-resend").onclick = function(e) {
+                e.preventDefault();
+                document.querySelector("#form .action").value = "resend";
+                document.querySelector("#form").submit();
+            }
+        })();
+    </script>
+    {{ template "footer" .}}
+{{ end }}

@@ -1,0 +1,58 @@
+[app]
+address = "0.0.0.0:9000"
+
+# TTL / Expiry for the OTP in seconds.
+otp_ttl = 300
+otp_max_attempts = 5
+otp_max_resends = 3
+
+# The root URL where the OTPGateway server is running
+root_url = "http://localhost:9000"
+
+logo_url = ""
+favicon_url = ""
+
+[auth]
+# Namespaces (applications) and tokens. OTPs are generated
+# under these namespaces and the OTP APIs require
+# namespace + secret as BasicAuth headers for authentication.
+[auth.MyApp]
+namespace = "MyApp"
+secret = "mySecretToken"
+
+[auth.MyOtherApp]
+namespace = "MyOtherApp"
+secret = "myOtherSecretToken"
+
+[store.redis]
+host = "localhost"
+port = "6379"
+user = ""
+password = ""
+
+[provider.smtp]
+# Supported Go template tags in the 'subject' field and the template file
+# {{ .To }} - The receipient's To address given to the provider (eg: e-mail address or phone)
+# {{ .Namespace}} - The namespace that's passed during OTP registration
+# {{ .ChannelName }} - The channel name of the provider (for eg: smtp provider's channel name is "E-mail")
+# {{ .OTP }} - The generated OTP
+# {{ .OTPURL }} - Direct URL to the OTP verification page for instant verification (for eg: to send in e-mails)
+subject = "{{ .Namespace }}: {{ .Channel }} verification"
+template = "static/smtp.tpl"
+template_type = "html"
+
+# Arbitrary configuration for provider plugins are written as JSON strings.
+config = '''
+    {
+        "sHost": "you.smtp.host",
+        "sPort": 25,
+        "Host": "localhost",
+        "Port": 25,
+        "AuthProtocol": "cram",
+        "User": "smtp-user",
+        "Password": "smtp-password",
+        "FromEmail": "OTP verification <yoursite@yoursite.com>",
+        "MaxConns": 10,
+        "Sendtimeout": 5
+    }
+'''

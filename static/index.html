@@ -1,0 +1,46 @@
+{{ define "header" }}
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />	
+	<title>{{ .Title }}
+		{{ if ne .OTP.Namespace "" }}
+			/ {{ .OTP.Namespace }}
+		{{ end }}
+	</title>
+	<meta name="description" content="{{ .Description }}" />
+	<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+
+	<link href="https://fonts.googleapis.com/css?family=Open+Sans:400,700" rel="stylesheet">
+	<link href="/static/style.css" rel="stylesheet" type="text/css" />
+
+	{{ if ne .App.FaviconURL "" }}
+		<link rel="shortcut icon" href="{{ .App.FaviconURL }}" type="image/x-icon" />
+	{{ else }}
+		<link rel="shortcut icon" href="/public/static/favicon.png" type="image/x-icon" />
+	{{ end }}
+</head>
+<body>
+    <div class="container wrap">
+		<header class="header">
+			{{ if ne .App.LogoURL "" }}
+				<div class="logo">
+					<img src="{{ .App.LogoURL }}" alt="{{ .Title }}" />
+				</div>
+			{{ end }}
+		</header>
+        <section class="contents">
+{{ end }}
+
+{{ define "footer" }}
+        </section>
+	</div>
+	
+	<div class="container">
+		<footer class="footer">
+			Powered by <a target="_blank" href="https://github.com/knadh/otpgateway">otpgateway</a>
+		</footer>
+	</div>
+</body>
+</html>
+{{ end }}

@@ -1,37 +1,54 @@
 (function() {
     if(window.hasOwnProperty("OTPGateway")) {
 		return false;
-	}
+    }
+    // Get the script's source URL.
+    var s = document.querySelector("#otpgateway-script");
+    if(!s || !s.src) {
+        throw("otpgateway: script is missing the `otpgateway-script` id")
+    }
+    
+    var l = document.createElement("a");
+    l.href = s.src;
+    var _root = l.protocol + "//" + l.hostname + (l.port ? ":" + l.port : "");
+    if(!_root) {
+        throw("otpgateway: unable to detect hostname from the script location")
+    }
 
-    var _root = "http://localhost:9000";
+    // Load the CSS.
+    var css = document.createElement("link");
+    css.rel = "stylesheet";
+    css.type = "text/css";
+    css.href = _root + "/static/otp.css";
+    document.querySelector("head").appendChild(css);
 
-    function popup(url, title, w, h) {
-        var me = this;
+	// Open an inline dialog.
+	function modal(url, title) {
+        var mod = document.createElement("div");
+            mod.setAttribute("id", "otpgateway-modal-wrap");
+            mod.innerHTML = "<div id='otpgateway-modal'></div> <iframe id='otpgateway-frame'></iframe>";
 
-        // Compute the width for the dialog.
-        if(!w) {
-            w = screen.width/2 < 500 ? 500 : screen.width/2;
-        }
-        if(!h) {
-            h = screen.height/1.5 < 500 ? 500 : screen.height/1.8;
-        }
+        // Insert the modal.
+        document.querySelector("body").appendChild(mod);
 
-        var	left = (screen.width / 2) - (w/2),
-            top = (screen.height / 2) - (h/2);
-
-        var params = "width=%,height=%,left=%,top=%,status=no,menubar=no,toolbar=no,scrollbars=yes"
-                        .replace("%", w)
-                        .replace("%", h)
-                        .replace("%", left)
-                        .replace("%", top);
-
-        this.win = window.open(url, title, params);
-        return this.win.document;
+        // Destroy modal on click-out.
+        document.querySelector("#otpgateway-modal").onclick = function() {
+            close();
+        };
+        
+        var fr = document.querySelector("#otpgateway-frame").contentDocument;
+		fr.open();
+		fr.write("<!doctype html><html><head></head><body></body></html>");
+		fr.close();
+        fr.location = url;
+    }
+    
+    function close() {
+        document.querySelector("#otpgateway-modal-wrap").remove();
     }
 
     window.OTPGateway = function(namespace, id, cb) {
-        var win = popup("", "Verification", 475);
-        win.location = _root + "/otp/" + namespace + "/" + id + "?view=popup";
+        var win = modal(_root + "/otp/" + namespace + "/" + id + "?view=popup", "Verification");
 
         // Add a one time event listener for callbacks from the popup if
         // there's a callback.
@@ -49,8 +66,8 @@
                 if(e.data.hasOwnProperty("namespace") && e.data.hasOwnProperty("id")) {
                     cb(e.data.namespace, e.data.id);
                 }
+                close()
             }
-
             return handle;
         }()));
     };

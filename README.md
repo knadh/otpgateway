@@ -1,7 +1,10 @@
 # OTP Gateway
 OTP (One Time Password) Gateway is a standalone web app that provides a central gateway to verify user addresses such as e-mails and phone numbers or get a 2FA confirmations from thse addresses. An e-mail / SMTP verification provider is bundled and it is easy to write custom providers as Go plugins, for instance a plugin that uses Twilio to send out verification codes to phone numbers as text messages.
 
-The application comes with a built in web flow and a Javascript plugin to easily integrate verification services into existing applications. It also has basic multi-tenancy (namespace+secret auth) for different services within an organisation.
+- Use the built in web UI to easily integrate with existing applications
+- Use the HTTP/JSON APIs to build your own UI
+- Basic multi-tenancy with namespace+secret auth for seggregating
+
 
 ![otp](https://user-images.githubusercontent.com/547147/51735115-7d4a5d00-20ac-11e9-8a86-3985665a7820.png)
 ![email-otp](https://user-images.githubusercontent.com/547147/51734344-407d6680-20aa-11e9-8e8e-03db29d8f900.png)
@@ -20,11 +23,14 @@ Download the latest release from the [releases page](/knadh/otpgateway/releases)
 - Copy config.toml.sample to config.toml and edit the configuration
 - Run `./otpgateway --provider smtp`
  
-
-- Generate an OTP for a user (server side in your application)
+### Built in UI
+1. Generate an OTP for a user server side in your application:
   `curl -u "myAppName:mySecret" -X PUT -d "to=john@doe.com&provider=smtp" localhost:9000/api/otp/uniqueIDForJohnDoe`
-- Redirect the user to OTP validation page
-  `http://localhost:9000/otp/myAppName/uniqueIDForJohnDoe`
+2. Use the `OTPGateway()` Javascript function (see the Javascript plugin section) to initiate the modal UI on your webpage. On receiving the Javascript callback, post it back to your application and confirm that the OTP is indeed verified:
+`curl -u "myAppName:mySecret" -X POST localhost:9000/api/otp/uniqueIDForJohnDoe/status`
+
+### Your own UI
+Use the APIs described below to build your own UI.
 
 # API reference
 ### List providers
@@ -38,7 +44,7 @@ Download the latest release from the [releases page](/knadh/otpgateway/releases)
 }
 ```
 
-### Generate an OTP for a user
+### Initiate an OTP for a user
 ```shell
 curl -u "myAppName:mySecret" -X PUT -d "to=john@doe.com&provider=smtp" localhost:9000/api/otp/uniqueIDForJohnDoe
 ```
@@ -71,15 +77,25 @@ curl -u "myAppName:mySecret" -X PUT -d "to=john@doe.com&provider=smtp" localhost
 
 ```
 
-### Validate an OTP given by the user
+### Validate an OTP entered by the user
+Every incorrect validation here increments the attempts before further attempts are blocked.
 `curl -u "myAppName:mySecret" -X POST -d "action=check&otp=354965" localhost:9000/api/otp/uniqueIDForJohnDoe`
 
 ```json
 {"status":"success","data":true}
 ```
 
+### Check whether an OTP request is verified
+This is used to confirm verification after a callback from the built in UI flow.
+`curl -u "myAppName:mySecret" -X POST localhost:9000/api/otp/uniqueIDForJohnDoe/status`
+
+```json
+{"status":"success","data":{"verified": true}}
+```
+
+
 # Javascript plugin
-The gateway comes with a Javascript plugin that enables easy integration of the verification flow into existing application. Once a server side call to generate an OTP is made, on the frontend:
+The gateway comes with a Javascript plugin that enables easy integration of the verification flow into existing application. Once a server side call to generate an OTP is made and a namespace and id are obtained, calling `OTPGateway()` opens the verification UI in a modal popup, and once the user finishes the verification, gives you a callback.
 
 ```html
 <script src="http://localhost:9000/static/otp.js"></script>
@@ -92,7 +108,7 @@ The gateway comes with a Javascript plugin that enables easy integration of the 
         console.log("finished", nm, id);
 
         // 3. Post the namespace and id to your server that will make the
-        // check request to the gateway and on success, update the user's
+        // status request to the gateway and on success, update the user's
         // address in your records as it's now verified.
     })
 

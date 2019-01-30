@@ -259,7 +259,8 @@ func main() {
 	r := chi.NewRouter()
 	r.Get("/api/providers", auth(authCreds, wrap(app, handleGetProviders)))
 	r.Put("/api/otp/{id}", auth(authCreds, wrap(app, handleSetOTP)))
-	r.Post("/api/otp/{id}", auth(authCreds, wrap(app, handleCheckOTP)))
+	r.Post("/api/otp/{id}/status", auth(authCreds, wrap(app, handleCheckOTPStatus)))
+	r.Post("/api/otp/{id}", auth(authCreds, wrap(app, handleVerifyOTP)))
 	r.Get("/otp/{namespace}/{id}", wrap(app, handleIndex))
 	r.Post("/otp/{namespace}/{id}", wrap(app, handleIndex))
 	r.Get("/static/*", func(w http.ResponseWriter, r *http.Request) {

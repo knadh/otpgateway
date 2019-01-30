@@ -179,8 +179,42 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 	sendResponse(w, out)
 }
 
-// handleCheckOTP checks the user input against a stored OTP.
-func handleCheckOTP(w http.ResponseWriter, r *http.Request) {
+// handleCheckOTPStatus checks the user input against a stored OTP.
+func handleCheckOTPStatus(w http.ResponseWriter, r *http.Request) {
+	var (
+		app       = r.Context().Value("app").(*App)
+		namespace = r.Context().Value("namespace").(string)
+		id        = chi.URLParam(r, "id")
+	)
+
+	if len(id) < 6 {
+		sendErrorResponse(w, "ID should be min 6 chars", http.StatusBadRequest, nil)
+		return
+	}
+
+	// Check the OTP status.
+	out, err := app.store.Check(namespace, id, false)
+	if err != nil {
+		if err == otpgateway.ErrNotExist {
+			sendErrorResponse(w, err.Error(), http.StatusBadRequest, out)
+			return
+		}
+
+		app.logger.Printf("error checking OTP: %v", err)
+		sendErrorResponse(w, err.Error(), http.StatusBadRequest, out)
+		return
+	}
+
+	if out.Closed {
+		sendResponse(w, map[string]interface{}{"verified": true})
+		return
+	}
+
+	sendResponse(w, map[string]interface{}{"verified": false})
+}
+
+// handleVerifyOTP checks the user input against a stored OTP.
+func handleVerifyOTP(w http.ResponseWriter, r *http.Request) {
 	var (
 		app       = r.Context().Value("app").(*App)
 		namespace = r.Context().Value("namespace").(string)
@@ -197,7 +231,7 @@ func handleCheckOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	out, err := checkOTP(namespace, id, otpVal, app)
+	out, err := verifyOTP(namespace, id, otpVal, app)
 	if err != nil {
 		sendErrorResponse(w, err.Error(), http.StatusBadRequest, out)
 		return
@@ -227,7 +261,7 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 		out, otpErr = app.store.Check(namespace, id, true)
 	} else {
 		// Validate the attempt.
-		out, otpErr = checkOTP(namespace, id, otp, app)
+		out, otpErr = verifyOTP(namespace, id, otp, app)
 	}
 	if otpErr == otpgateway.ErrNotExist {
 		app.tpl.ExecuteTemplate(w, "message", tpl{App: app,
@@ -294,8 +328,8 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// checkOTP validates an OTP against user input.
-func checkOTP(namespace, id, otp string, app *App) (otpgateway.OTP, error) {
+// verifyOTP validates an OTP against user input.
+func verifyOTP(namespace, id, otp string, app *App) (otpgateway.OTP, error) {
 	// Check the OTP.
 	out, err := app.store.Check(namespace, id, true)
 	if err != nil {

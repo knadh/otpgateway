@@ -98,7 +98,8 @@ This is used to confirm verification after a callback from the built in UI flow.
 The gateway comes with a Javascript plugin that enables easy integration of the verification flow into existing application. Once a server side call to generate an OTP is made and a namespace and id are obtained, calling `OTPGateway()` opens the verification UI in a modal popup, and once the user finishes the verification, gives you a callback.
 
 ```html
-<script src="http://localhost:9000/static/otp.js"></script>
+<!-- The id #otpgateway-script is required for the script to work //-->
+<script id="otpgateway-script" src="http://localhost:9000/static/otp.js"></script>
 <script>
     // 1. Make an Ajax call to the server to generate and send an OTP and return the
     // the :namespace and :id for the OTP.

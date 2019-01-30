@@ -19,7 +19,7 @@ Providers are written as [Go plugins](https://golang.org/pkg/plugin/) that can b
 - [solsms](https://github.com/knadh/otpgateway-solsms) - SMS provider for Solutions Infini (Indian gateway)
 
 # Usage
-Download the latest release from the [releases page](/knadh/otpgateway/releases) or clone this repository and run `make deps && make build`. Redis is a requirement.
+Download the latest release from the [releases page](https://github.com/knadh/otpgateway/releases) or clone this repository and run `make deps && make build`. Redis is a requirement.
 - Copy config.toml.sample to config.toml and edit the configuration
 - Run `./otpgateway --provider smtp`
  

@@ -67,5 +67,6 @@
             <a href="{{ .OTPURL }}">Click here</a> to complete the verification.
         </p>
     </div>
+    <div class="gutter">&nbsp;</div>
 </body>
 </html>

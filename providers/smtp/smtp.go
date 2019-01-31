@@ -13,9 +13,12 @@ import (
 )
 
 const (
-	providerID  = "smtp"
-	channelName = "E-mail"
-	maxOTPlen   = 6
+	providerID    = "smtp"
+	channelName   = "E-mail"
+	addressName   = "E-mail ID"
+	maxOTPlen     = 6
+	maxAddressLen = 100
+	maxBodyLen    = 100 * 1024
 )
 
 // http://www.golangprograms.com/regular-expression-to-validate-email-address.html
@@ -95,6 +98,11 @@ func (e *emailer) ChannelName() string {
 	return channelName
 }
 
+// AddressName returns the e-mail Provider's address name.
+func (e *emailer) AddressName() string {
+	return addressName
+}
+
 // Description returns help text for the e-mail verification Provider.
 func (e *emailer) Description() string {
 	return fmt.Sprintf(`
@@ -121,6 +129,11 @@ func (e *emailer) Push(toAddr string, subject string, m []byte) error {
 	}, e.timeout)
 }
 
+// MaxAddressLen returns the maximum allowed length of the e-mail address.
+func (e *emailer) MaxAddressLen() int {
+	return maxAddressLen
+}
+
 // MaxOTPLen returns the maximum allowed length of the OTP value.
 func (e *emailer) MaxOTPLen() int {
 	return maxOTPlen
@@ -128,5 +141,5 @@ func (e *emailer) MaxOTPLen() int {
 
 // MaxBodyLen returns the max permitted body size.
 func (e *emailer) MaxBodyLen() int {
-	return 100 * 1024
+	return maxBodyLen
 }

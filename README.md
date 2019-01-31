@@ -5,7 +5,7 @@ OTP (One Time Password) Gateway is a standalone web app that provides a central 
 - Use the HTTP/JSON APIs to build your own UI
 - Basic multi-tenancy with namespace+secret auth for seggregating
 
-
+![address](https://user-images.githubusercontent.com/547147/52076261-501e1300-25b4-11e9-8641-2189d0e4afb7.png)
 ![otp](https://user-images.githubusercontent.com/547147/51735115-7d4a5d00-20ac-11e9-8a86-3985665a7820.png)
 ![email-otp](https://user-images.githubusercontent.com/547147/51734344-407d6680-20aa-11e9-8e8e-03db29d8f900.png)
 
@@ -51,9 +51,9 @@ curl -u "myAppName:mySecret" -X PUT -d "to=john@doe.com&provider=smtp" localhost
 
 | param | description |
 |------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| :id | (optional) A unique ID for the user being verified. If this is not provided, an random ID is generated and returned. It's good to send this as a permanent ID for your existing users to prevent users from indefinitely trying to generate OTPs. For instance, if your user's ID is 123 and you're verifying the user's e-mail, a simple ID can be MD5("email.123") |
+| :id | (optional) A unique ID for the user being verified. If this is not provided, an random ID is generated and returned. It's good to send this as a permanent ID for your existing users to prevent users from indefinitely trying to generate OTPs. For instance, if your user's ID is 123 and you're verifying the user's e-mail, a simple ID can be MD5("email.123"). *Important*. The ID is only unique per namespace and not per provider. |
 | provider | ID of the provider plugin to use for verification. The bundled e-mail provider's ID is "smtp". |
-| to | The address of the user to verify, for instance, an e-mail ID for the "smtp" provider. |
+| to | (optional) The address of the user to verify, for instance, an e-mail ID for the "smtp" provider. If this is left blank, a view is displayed to collect the address from the user. |
 | description | (optional) Description to show to the user on the OTP verification page. If left empty, it'll show the default description or help text from the provider plugin. |
 | otp | (optional) The OTP or code to send to the user for verification. If this is left empty, a random OTP is generated and sent |
 
@@ -82,7 +82,22 @@ Every incorrect validation here increments the attempts before further attempts 
 `curl -u "myAppName:mySecret" -X POST -d "action=check&otp=354965" localhost:9000/api/otp/uniqueIDForJohnDoe`
 
 ```json
-{"status":"success","data":true}
+{
+  "status": "success",
+  "data": {
+    "namespace": "myAppName",
+    "id": "uniqueIDForJohnDoe",
+    "to": "john@doe.com",
+    "description": "",
+    "provider": "smtp",
+    "otp": "354965",
+    "max_attempts": 5,
+    "attempts": 5,
+    "closed": false,
+    "ttl": 300,
+    "url": "http://localhost:9000/otp/myAppName/uniqueIDForJohnDoe"
+  }
+}
 ```
 
 ### Check whether an OTP request is verified
@@ -90,7 +105,27 @@ This is used to confirm verification after a callback from the built in UI flow.
 `curl -u "myAppName:mySecret" -X POST localhost:9000/api/otp/uniqueIDForJohnDoe/status`
 
 ```json
-{"status":"success","data":{"verified": true}}
+{
+  "status": "success",
+  "data": {
+    "namespace": "myAppName",
+    "id": "uniqueIDForJohnDoe",
+    "to": "john@doe.com",
+    "description": "",
+    "provider": "smtp",
+    "otp": "354965",
+    "max_attempts": 5,
+    "attempts": 5,
+    "closed": false,
+    "ttl": 300
+  }
+}
+```
+
+or an error such as
+
+```json
+{"status":"error","message":"OTP not verified"}
 ```
 
 
@@ -105,7 +140,7 @@ The gateway comes with a Javascript plugin that enables easy integration of the 
     // the :namespace and :id for the OTP.
     // 2. Invoke the verification UI for the user with the namespace and id values,
     // and a callback which is triggered when the user finishes the flow.
-    OTPGateway(namespaceVal, idVal, func(nm, id) {
+    OTPGateway(namespaceVal, idVal, function(nm, id) {
         console.log("finished", nm, id);
 
         // 3. Post the namespace and id to your server that will make the

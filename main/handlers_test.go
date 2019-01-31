@@ -98,7 +98,7 @@ func init() {
 			},
 		},
 		otpTTL:         10 * time.Second,
-		otpMaxAttempts: 3,
+		otpMaxAttempts: 4,
 		store: otpgateway.NewRedisStore(otpgateway.RedisConf{
 			Host: rd.Host(),
 			Port: port,

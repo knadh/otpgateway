@@ -410,7 +410,7 @@ func generateRandomString(totalLen int, chars string) (string, error) {
 
 // isLocked tells if an OTP is locked after exceeding attempts.
 func isLocked(otp otpgateway.OTP) bool {
-	if otp.Attempts > otp.MaxAttempts {
+	if otp.Attempts >= otp.MaxAttempts {
 		return true
 	}
 	return false

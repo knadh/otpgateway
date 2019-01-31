@@ -145,7 +145,7 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 		sendErrorResponse(w,
 			fmt.Sprintf("OTP attempts exceeded. Retry after %0.f seconds.",
 				otp.TTL.Seconds()),
-			http.StatusBadRequest, otpErrResp{
+			http.StatusTooManyRequests, otpErrResp{
 				Attempts:    otp.Attempts,
 				MaxAttempts: app.otpMaxAttempts,
 				TTL:         otp.TTL.Seconds(),
@@ -233,7 +233,11 @@ func handleVerifyOTP(w http.ResponseWriter, r *http.Request) {
 
 	out, err := verifyOTP(namespace, id, otpVal, app)
 	if err != nil {
-		sendErrorResponse(w, err.Error(), http.StatusBadRequest, out)
+		code := http.StatusBadRequest
+		if out.Closed {
+			code = http.StatusTooManyRequests
+		}
+		sendErrorResponse(w, err.Error(), code, out)
 		return
 	}
 

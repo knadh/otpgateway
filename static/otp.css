@@ -19,14 +19,36 @@
     z-index: 1000;
 }
 #otpgateway-frame {
+    background: #fff;
     box-shadow: 3px 3px 0px #eee;
     border: 1px solid #ddd;
     z-index: 2000;
     top: 0;
-    min-width: 400px;
+    min-width: 500px;
     max-width: 500px;
     min-height: 500px;
 }
+
+
+.otpgateway-spinner {
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+    border: 3px solid #ccc;
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+    -webkit-animation: otp-spin 1s ease-in-out infinite;
+    position: absolute;
+    z-index: 3000;
+  }
+  
+  @keyframes otp-spin {
+    to { -webkit-transform: rotate(360deg); }
+  }
+  @-webkit-keyframes otp-spin {
+    to { -webkit-transform: rotate(360deg); }
+  }
 
 @media(max-width: 500px) {
     #otpgateway-frame {

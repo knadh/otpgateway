@@ -23,6 +23,10 @@ type Provider interface {
 	// web views.
 	ChannelName() string
 
+	// AddressName returns the name or label of the address for this provider.
+	// For example "E-mail" for an e-mail provider or "Phone number" for an SMS provider.
+	AddressName() string
+
 	// Description returns the help text that is shown to the end users describing
 	// how the Provider handles OTP verification.
 	// Eg: "We've sent a 6 digit code to your phone. Enter that here to verify
@@ -38,6 +42,9 @@ type Provider interface {
 	// implementation, this can either cause the message to
 	// be sent immediately or be queued waiting for a Flush().
 	Push(to, subject string, body []byte) error
+
+	// MaxAddressLen returns the maximum allowed length of the 'to' address.
+	MaxAddressLen() int
 
 	// MaxOTPLen returns the maximum allowed length of the OTP value.
 	MaxOTPLen() int

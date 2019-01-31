@@ -33,6 +33,9 @@ type Store interface {
 	// count against the ID that was initially set.
 	Set(namespace, id string, otp OTP) (OTP, error)
 
+	// SetAddress sets (updates) the address on an existing OTP.
+	SetAddress(namespace, id, address string) error
+
 	// Check checks the attempt count and TTL duration against an ID.
 	// Passing counter=true increments the attempt counter.
 	Check(namespace, id string, counter bool) (OTP, error)
@@ -162,6 +165,21 @@ func (r *redisStore) Set(namespace, id string, otp OTP) (OTP, error) {
 	otp.Namespace = namespace
 	otp.ID = id
 	return otp, nil
+}
+
+// SetAddress sets (updates) the address on an existing OTP.
+func (r *redisStore) SetAddress(namespace, id, address string) error {
+	c := r.pool.Get()
+	defer c.Close()
+
+	// Set the OTP value.
+	var key = r.makeKey(namespace, id)
+
+	if _, err := c.Do("HSET", key, "to", address); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Close closes an OTP and marks it as done (verified).

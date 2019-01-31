@@ -32,6 +32,11 @@ func (d *dummyProv) ChannelName() string {
 	return "dummychannel"
 }
 
+// AddressName returns the label of the address.
+func (d *dummyProv) AddressName() string {
+	return "dummyaddress"
+}
+
 // Description returns help text for the e-mail verification Provider.
 func (d *dummyProv) Description() string {
 	return "dummy description"
@@ -52,6 +57,11 @@ func (d *dummyProv) Push(toAddr string, subject string, m []byte) error {
 
 // MaxOTPLen returns the maximum allowed length of the OTP value.
 func (d *dummyProv) MaxOTPLen() int {
+	return 6
+}
+
+// MaxAddressLen returns the maximum allowed length of the 'to' address.
+func (d *dummyProv) MaxAddressLen() int {
 	return 6
 }
 
@@ -110,8 +120,8 @@ func init() {
 	r.Get("/api/providers", auth(authCreds, wrap(app, handleGetProviders)))
 	r.Put("/api/otp/{id}", auth(authCreds, wrap(app, handleSetOTP)))
 	r.Post("/api/otp/{id}", auth(authCreds, wrap(app, handleVerifyOTP)))
-	r.Get("/otp/{namespace}/{id}", wrap(app, handleIndex))
-	r.Post("/otp/{namespace}/{id}", wrap(app, handleIndex))
+	r.Get("/otp/{namespace}/{id}", wrap(app, handleOTPView))
+	r.Post("/otp/{namespace}/{id}", wrap(app, handleOTPView))
 	srv = httptest.NewServer(r)
 }
 

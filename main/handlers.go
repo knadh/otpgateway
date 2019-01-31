@@ -23,8 +23,9 @@ const (
 	actCheck  = "check"
 	actResend = "resend"
 
-	uriView  = "/otp/%s/%s"
-	uriCheck = "/otp/%s/%s?otp=%s&action=check"
+	uriViewOTP     = "/otp/%s/%s"
+	uriViewAddress = "/otp/%s/%s/address"
+	uriCheck       = "/otp/%s/%s?otp=%s&action=check"
 )
 
 type httpResp struct {
@@ -48,12 +49,14 @@ type tpl struct {
 	Title       string
 	Description string
 
-	ChannelName string
-	MaxOTPLen   int
-	OTP         otpgateway.OTP
-	Locked      bool
-	Closed      bool
-	Message     string
+	ChannelName   string
+	AddressName   string
+	MaxAddressLen int
+	MaxOTPLen     int
+	OTP           otpgateway.OTP
+	Locked        bool
+	Closed        bool
+	Message       string
 
 	App *App
 }
@@ -65,6 +68,10 @@ type pushTpl struct {
 	OTP       string
 	OTPURL    string
 }
+
+// ErrNotExist is thrown when an OTP (requested by namespace / ID)
+// does not exist.
+var ErrNotExist = errors.New("the OTP does not exist")
 
 // handleGetProviders returns the list of available message providers.
 func handleGetProviders(w http.ResponseWriter, r *http.Request) {
@@ -100,11 +107,15 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate the 'to' address with the provider.
-	if err := pro.ValidateAddress(to); err != nil {
-		sendErrorResponse(w, fmt.Sprintf("invalid `to` address: %v", err),
-			http.StatusBadRequest, nil)
-		return
+	// Validate the 'to' address with the provider if one is given.
+	// If an address is not set, the gateway will render the address
+	// collection UI.
+	if to != "" {
+		if err := pro.ValidateAddress(to); err != nil {
+			sendErrorResponse(w, fmt.Sprintf("invalid `to` address: %v", err),
+				http.StatusBadRequest, nil)
+			return
+		}
 	}
 
 	// If there is no incoming ID, generate a random ID.
@@ -169,10 +180,12 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Push the OTP out.
-	if err := push(newOTP, app.providerTpls[pro.ID()], pro, app.RootURL); err != nil {
-		app.logger.Printf("error sending OTP: %v", err)
-		sendErrorResponse(w, "error sending OTP", http.StatusInternalServerError, nil)
-		return
+	if to != "" {
+		if err := push(newOTP, app.providerTpls[pro.ID()], pro, app.RootURL); err != nil {
+			app.logger.Printf("error sending OTP: %v", err)
+			sendErrorResponse(w, "error sending OTP", http.StatusInternalServerError, nil)
+			return
+		}
 	}
 
 	out := otpResp{newOTP, getURL(app.RootURL, newOTP, false)}
@@ -244,8 +257,8 @@ func handleVerifyOTP(w http.ResponseWriter, r *http.Request) {
 	sendResponse(w, true)
 }
 
-// handleIndex renders the HTTP view.
-func handleIndex(w http.ResponseWriter, r *http.Request) {
+// handleOTPView renders the HTTP view.
+func handleOTPView(w http.ResponseWriter, r *http.Request) {
 	var (
 		app       = r.Context().Value("app").(*App)
 		namespace = chi.URLParam(r, "namespace")
@@ -308,6 +321,13 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// There is no 'to' address set.
+	if out.To == "" {
+		http.Redirect(w, r, fmt.Sprintf(uriViewAddress, out.Namespace, out.ID),
+			http.StatusFound)
+		return
+	}
+
 	msg := ""
 	// It's a resend request.
 	if action == actResend {
@@ -332,16 +352,89 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// handleAddressView renders the UI for collecting the provider address for
+// verification from the user.
+func handleAddressView(w http.ResponseWriter, r *http.Request) {
+	var (
+		app       = r.Context().Value("app").(*App)
+		namespace = chi.URLParam(r, "namespace")
+		id        = chi.URLParam(r, "id")
+		to        = r.FormValue("to")
+	)
+
+	out, err := app.store.Check(namespace, id, false)
+	if err != nil {
+		if err == otpgateway.ErrNotExist {
+			app.tpl.ExecuteTemplate(w, "message", tpl{App: app,
+				Title: "Session expired",
+				Description: `Your session has expired.
+					Please re-initiate the verification.`,
+			})
+		} else {
+			app.logger.Printf("error checking OTP: %v", err)
+			app.tpl.ExecuteTemplate(w, "message", tpl{App: app,
+				Title:       "Internal error",
+				Description: `Please try later.`,
+			})
+		}
+		return
+	}
+
+	// Address is already set.
+	if out.To != "" {
+		http.Redirect(w, r, fmt.Sprintf(uriViewOTP, out.Namespace, out.ID),
+			http.StatusFound)
+	}
+
+	// Get the provider.
+	pro, ok := app.providers[out.Provider]
+	if !ok {
+		app.tpl.ExecuteTemplate(w, "message", tpl{App: app,
+			Title:       "Internal error",
+			Description: "The provider for this OTP was not found.",
+		})
+		return
+	}
+
+	// Validate the address.
+	msg := ""
+	if to != "" {
+		if err := pro.ValidateAddress(to); err != nil {
+			msg = err.Error()
+		} else if err := app.store.SetAddress(namespace, id, to); err != nil {
+			msg = err.Error()
+		} else {
+			out.To = to
+			if err := push(out, app.providerTpls[pro.ID()], pro, app.RootURL); err != nil {
+				app.logger.Printf("error sending OTP: %v", err)
+				msg = "error sending OTP"
+			} else {
+				http.Redirect(w, r, fmt.Sprintf(uriViewOTP, out.Namespace, out.ID),
+					http.StatusFound)
+			}
+		}
+	}
+
+	app.tpl.ExecuteTemplate(w, "index", tpl{App: app,
+		ChannelName:   pro.ChannelName(),
+		AddressName:   pro.AddressName(),
+		MaxAddressLen: pro.MaxAddressLen(),
+		Message:       msg,
+		Title:         fmt.Sprintf("Verify %s", pro.ChannelName()),
+		Description:   pro.Description(),
+		OTP:           out,
+	})
+}
+
 // verifyOTP validates an OTP against user input.
 func verifyOTP(namespace, id, otp string, app *App) (otpgateway.OTP, error) {
 	// Check the OTP.
 	out, err := app.store.Check(namespace, id, true)
 	if err != nil {
-		if err == otpgateway.ErrNotExist {
-			return out, err
+		if err != otpgateway.ErrNotExist {
+			app.logger.Printf("error checking OTP: %v", err)
 		}
-		app.logger.Printf("error checking OTP: %v", err)
-		return out, err
+		return out, errors.New("error checking OTP")
 	}
 
 	errMsg := ""
@@ -445,7 +538,7 @@ func getURL(rootURL string, otp otpgateway.OTP, check bool) string {
 	if check {
 		return rootURL + fmt.Sprintf(uriCheck, otp.Namespace, otp.ID, otp.OTP)
 	}
-	return rootURL + fmt.Sprintf(uriView, otp.Namespace, otp.ID)
+	return rootURL + fmt.Sprintf(uriViewOTP, otp.Namespace, otp.ID)
 }
 
 // auth is a simple authentication middleware.

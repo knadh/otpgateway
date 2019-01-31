@@ -26,7 +26,7 @@
 	function modal(url, title) {
         var mod = document.createElement("div");
             mod.setAttribute("id", "otpgateway-modal-wrap");
-            mod.innerHTML = "<div id='otpgateway-modal'></div> <iframe id='otpgateway-frame'></iframe>";
+            mod.innerHTML = "<div id='otpgateway-modal'></div> <div id='otpgateway-frame-spinner' class='otpgateway-spinner'></div> <iframe id='otpgateway-frame'></iframe>";
 
         // Insert the modal.
         document.querySelector("body").appendChild(mod);
@@ -36,11 +36,16 @@
             close();
         };
         
-        var fr = document.querySelector("#otpgateway-frame").contentDocument;
-		fr.open();
-		fr.write("<!doctype html><html><head></head><body></body></html>");
-		fr.close();
-        fr.location = url;
+        var fr = document.querySelector("#otpgateway-frame")
+        fr.onload = function() {
+            console.log("xxxx");
+            document.querySelector("#otpgateway-frame-spinner").remove();
+        };
+        frc = fr.contentDocument;
+		frc.open();
+		frc.write("<!doctype html><html><head></head><body></body></html>");
+		frc.close();
+        frc.location = url;
     }
     
     function close() {

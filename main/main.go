@@ -261,8 +261,10 @@ func main() {
 	r.Put("/api/otp/{id}", auth(authCreds, wrap(app, handleSetOTP)))
 	r.Post("/api/otp/{id}/status", auth(authCreds, wrap(app, handleCheckOTPStatus)))
 	r.Post("/api/otp/{id}", auth(authCreds, wrap(app, handleVerifyOTP)))
-	r.Get("/otp/{namespace}/{id}", wrap(app, handleIndex))
-	r.Post("/otp/{namespace}/{id}", wrap(app, handleIndex))
+	r.Get("/otp/{namespace}/{id}", wrap(app, handleOTPView))
+	r.Get("/otp/{namespace}/{id}/address", wrap(app, handleAddressView))
+	r.Post("/otp/{namespace}/{id}/address", wrap(app, handleAddressView))
+	r.Post("/otp/{namespace}/{id}", wrap(app, handleOTPView))
 	r.Get("/static/*", func(w http.ResponseWriter, r *http.Request) {
 		app.fs.FileServer().ServeHTTP(w, r)
 	})

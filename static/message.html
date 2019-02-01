@@ -8,10 +8,7 @@
     {{ if .Closed }}
         <script>
             (function() {
-                // If it's a popup, post the window message (callback) and close.
-                if(new URL(document.location).searchParams.get("view") === "popup") {
-                    this.parent.postMessage({ "namespace": {{ .OTP.Namespace }}, "id": {{ .OTP.ID }} }, "*");
-                }
+                this.parent.postMessage({ "namespace": {{ .OTP.Namespace }}, "id": {{ .OTP.ID }} }, "*");
             })();
         </script>
     {{ end }}

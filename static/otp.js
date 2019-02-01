@@ -38,8 +38,10 @@
         
         var fr = document.querySelector("#otpgateway-frame")
         fr.onload = function() {
-            console.log("xxxx");
-            document.querySelector("#otpgateway-frame-spinner").remove();
+            var spin = document.querySelector("#otpgateway-frame-spinner");
+            if(spin) {
+                spin.remove();
+            }
         };
         frc = fr.contentDocument;
 		frc.open();

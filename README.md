@@ -46,7 +46,7 @@ Use the APIs described below to build your own UI.
 
 ### Initiate an OTP for a user
 ```shell
-curl -u "myAppName:mySecret" -X PUT -d "to=john@doe.com&provider=smtp" localhost:9000/api/otp/uniqueIDForJohnDoe
+curl -u "myAppName:mySecret" -X PUT -d "to=john@doe.com&provider=smtp&extra={\"yes\": true}" localhost:9000/api/otp/uniqueIDForJohnDoe
 ```
 
 | param | description |
@@ -57,6 +57,7 @@ curl -u "myAppName:mySecret" -X PUT -d "to=john@doe.com&provider=smtp" localhost
 | channel_description | (optional) Description to show to the user on the OTP verification page. If left empty, it'll show the default description or help text from the provider plugin. |
 | address_description | (optional) Description to show to the user on the address collection page. If left empty, it'll show the default description or help text from the provider plugin. |
 | otp | (optional) The OTP or code to send to the user for verification. If this is left empty, a random OTP is generated and sent |
+| extra | (optional) An extra payload (JSON string) that will be returned with the OTP |
 
 ```json
 {
@@ -67,6 +68,7 @@ curl -u "myAppName:mySecret" -X PUT -d "to=john@doe.com&provider=smtp" localhost
     "to": "john@doe.com",
     "channel_description": "",
     "address_description": "",
+    "extra": {"yes": true},
     "provider": "smtp",
     "otp": "354965",
     "max_attempts": 5,
@@ -92,6 +94,7 @@ Every incorrect validation here increments the attempts before further attempts 
     "to": "john@doe.com",
     "channel_description": "",
     "address_description": "",
+    "extra": {"yes": true},
     "provider": "smtp",
     "otp": "354965",
     "max_attempts": 5,
@@ -116,6 +119,7 @@ This is used to confirm verification after a callback from the built in UI flow.
     "to": "john@doe.com",
     "channel_description": "",
     "address_description": "",
+    "extra": {"yes": true},
     "provider": "smtp",
     "otp": "354965",
     "max_attempts": 5,

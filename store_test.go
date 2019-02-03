@@ -21,6 +21,7 @@ var (
 		ChannelDesc: "channeldesc",
 		AddressDesc: "addressdesc",
 		Provider:    "smtp",
+		Extra:       []byte(`{"some": "json", "extra": true}`),
 		TTL:         2 * time.Second,
 		TTLSeconds:  2,
 	}

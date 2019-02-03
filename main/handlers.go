@@ -99,6 +99,7 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 		provider    = r.FormValue("provider")
 		channelDesc = r.FormValue("channel_description")
 		addressDesc = r.FormValue("address_description")
+		extra       = []byte(r.FormValue("extra"))
 		to          = r.FormValue("to")
 		otpVal      = r.FormValue("otp")
 	)
@@ -119,6 +120,17 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 				http.StatusBadRequest, nil)
 			return
 		}
+	}
+
+	// If there's extra data, make sure it's JSON.
+	if len(extra) > 0 {
+		var tmp interface{}
+		if err := json.Unmarshal(extra, &tmp); err != nil {
+			sendErrorResponse(w, fmt.Sprintf("Invalid JSON in `extra`: %v", err), http.StatusBadRequest, nil)
+			return
+		}
+	} else {
+		extra = []byte("{}")
 	}
 
 	// If there is no incoming ID, generate a random ID.
@@ -173,6 +185,7 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 		To:          to,
 		ChannelDesc: channelDesc,
 		AddressDesc: addressDesc,
+		Extra:       []byte(extra),
 		Provider:    provider,
 		TTL:         app.otpTTL,
 		MaxAttempts: app.otpMaxAttempts,
@@ -496,7 +509,6 @@ func sendErrorResponse(w http.ResponseWriter, message string, code int, data int
 		Message: message,
 		Data:    data}
 	out, _ := json.Marshal(resp)
-
 	w.Write(out)
 }
 

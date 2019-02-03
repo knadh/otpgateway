@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"html/template"
 	"io/ioutil"
 	"log"
@@ -238,6 +239,7 @@ func testRequest(t *testing.T, method, path string, p url.Values, out interface{
 	}
 	defer resp.Body.Close()
 
+	fmt.Println(len(respBody), method, path, p)
 	if err := json.Unmarshal(respBody, out); err != nil {
 		t.Fatal(err)
 	}

@@ -1,6 +1,7 @@
 package otpgateway
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -14,18 +15,19 @@ var ErrNotExist = errors.New("the OTP does not exist")
 
 // OTP contains the information about an OTP.
 type OTP struct {
-	Namespace   string        `redis:"namespace" json:"namespace"`
-	ID          string        `redis:"id" json:"id"`
-	To          string        `redis:"to" json:"to"`
-	ChannelDesc string        `redis:"channel_description" json:"channel_description"`
-	AddressDesc string        `redis:"address_description" json:"address_description"`
-	Provider    string        `redis:"provider" json:"provider"`
-	OTP         string        `redis:"otp" json:"otp"`
-	MaxAttempts int           `redis:"max_attempts" json:"max_attempts"`
-	Attempts    int           `redis:"attempts" json:"attempts"`
-	Closed      bool          `redis:"closed" json:"closed"`
-	TTL         time.Duration `redis:"-" json:"-"`
-	TTLSeconds  float64       `redis:"-" json:"ttl"`
+	Namespace   string          `redis:"namespace" json:"namespace"`
+	ID          string          `redis:"id" json:"id"`
+	To          string          `redis:"to" json:"to"`
+	ChannelDesc string          `redis:"channel_description" json:"channel_description"`
+	AddressDesc string          `redis:"address_description" json:"address_description"`
+	Extra       json.RawMessage `redis:"extra" json:"extra"`
+	Provider    string          `redis:"provider" json:"provider"`
+	OTP         string          `redis:"otp" json:"otp"`
+	MaxAttempts int             `redis:"max_attempts" json:"max_attempts"`
+	Attempts    int             `redis:"attempts" json:"attempts"`
+	Closed      bool            `redis:"closed" json:"closed"`
+	TTL         time.Duration   `redis:"-" json:"-"`
+	TTLSeconds  float64         `redis:"-" json:"ttl"`
 }
 
 // Store represents a storage backend where OTP data is stored.
@@ -144,6 +146,7 @@ func (r *redisStore) Set(namespace, id string, otp OTP) (OTP, error) {
 		"to", otp.To,
 		"channel_description", otp.ChannelDesc,
 		"address_description", otp.AddressDesc,
+		"extra", string(otp.Extra),
 		"provider", otp.Provider,
 		"closed", false,
 		"max_attempts", otp.MaxAttempts)

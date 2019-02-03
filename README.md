@@ -54,7 +54,8 @@ curl -u "myAppName:mySecret" -X PUT -d "to=john@doe.com&provider=smtp" localhost
 | :id | (optional) A unique ID for the user being verified. If this is not provided, an random ID is generated and returned. It's good to send this as a permanent ID for your existing users to prevent users from indefinitely trying to generate OTPs. For instance, if your user's ID is 123 and you're verifying the user's e-mail, a simple ID can be MD5("email.123"). *Important*. The ID is only unique per namespace and not per provider. |
 | provider | ID of the provider plugin to use for verification. The bundled e-mail provider's ID is "smtp". |
 | to | (optional) The address of the user to verify, for instance, an e-mail ID for the "smtp" provider. If this is left blank, a view is displayed to collect the address from the user. |
-| description | (optional) Description to show to the user on the OTP verification page. If left empty, it'll show the default description or help text from the provider plugin. |
+| channel_description | (optional) Description to show to the user on the OTP verification page. If left empty, it'll show the default description or help text from the provider plugin. |
+| address_description | (optional) Description to show to the user on the address collection page. If left empty, it'll show the default description or help text from the provider plugin. |
 | otp | (optional) The OTP or code to send to the user for verification. If this is left empty, a random OTP is generated and sent |
 
 ```json
@@ -64,7 +65,8 @@ curl -u "myAppName:mySecret" -X PUT -d "to=john@doe.com&provider=smtp" localhost
     "namespace": "myAppName",
     "id": "uniqueIDForJohnDoe",
     "to": "john@doe.com",
-    "description": "",
+    "channel_description": "",
+    "address_description": "",
     "provider": "smtp",
     "otp": "354965",
     "max_attempts": 5,
@@ -88,7 +90,8 @@ Every incorrect validation here increments the attempts before further attempts 
     "namespace": "myAppName",
     "id": "uniqueIDForJohnDoe",
     "to": "john@doe.com",
-    "description": "",
+    "channel_description": "",
+    "address_description": "",
     "provider": "smtp",
     "otp": "354965",
     "max_attempts": 5,
@@ -111,7 +114,8 @@ This is used to confirm verification after a callback from the built in UI flow.
     "namespace": "myAppName",
     "id": "uniqueIDForJohnDoe",
     "to": "john@doe.com",
-    "description": "",
+    "channel_description": "",
+    "address_description": "",
     "provider": "smtp",
     "otp": "354965",
     "max_attempts": 5,

@@ -23,15 +23,20 @@ type Provider interface {
 	// web views.
 	ChannelName() string
 
+	// ChannelDesc returns the help text that is shown to the end users describing
+	// how the Provider handles OTP verification.
+	// Eg: "We've sent a 6 digit code to your phone. Enter that here to verify
+	//      your phone number"
+	ChannelDesc() string
+
 	// AddressName returns the name or label of the address for this provider.
 	// For example "E-mail" for an e-mail provider or "Phone number" for an SMS provider.
 	AddressName() string
 
-	// Description returns the help text that is shown to the end users describing
-	// how the Provider handles OTP verification.
-	// Eg: "We've sent a 6 digit code to your phone. Enter that here to verify
-	//      your phone number"
-	Description() string
+	// AddressDesc returns the help text that is shown to the end users when
+	// they're asked to enter their addresses (eg: e-mail or phone), if the OTP
+	// registered without an address.
+	AddressDesc() string
 
 	// ValidateAddress validates the 'to' address the Provider
 	// is supposed to send the OTP to, for instance, an e-mail

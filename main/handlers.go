@@ -50,7 +50,9 @@ type tpl struct {
 	Description string
 
 	ChannelName   string
+	ChannelDesc   string
 	AddressName   string
+	AddressDesc   string
 	MaxAddressLen int
 	MaxOTPLen     int
 	OTP           otpgateway.OTP
@@ -95,7 +97,8 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 		namespace   = r.Context().Value("namespace").(string)
 		id          = chi.URLParam(r, "id")
 		provider    = r.FormValue("provider")
-		description = r.FormValue("description")
+		channelDesc = r.FormValue("channel_description")
+		addressDesc = r.FormValue("address_description")
 		to          = r.FormValue("to")
 		otpVal      = r.FormValue("otp")
 	)
@@ -168,7 +171,8 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 	newOTP, err := app.store.Set(namespace, id, otpgateway.OTP{
 		OTP:         otpVal,
 		To:          to,
-		Description: description,
+		ChannelDesc: channelDesc,
+		AddressDesc: addressDesc,
 		Provider:    provider,
 		TTL:         app.otpTTL,
 		MaxAttempts: app.otpMaxAttempts,
@@ -352,7 +356,8 @@ func handleOTPView(w http.ResponseWriter, r *http.Request) {
 		MaxOTPLen:   pro.MaxOTPLen(),
 		Message:     msg,
 		Title:       fmt.Sprintf("Verify %s", pro.ChannelName()),
-		Description: pro.Description(),
+		ChannelDesc: pro.ChannelDesc(),
+		AddressDesc: pro.AddressDesc(),
 		OTP:         out,
 	})
 }
@@ -426,7 +431,8 @@ func handleAddressView(w http.ResponseWriter, r *http.Request) {
 		MaxAddressLen: pro.MaxAddressLen(),
 		Message:       msg,
 		Title:         fmt.Sprintf("Verify %s", pro.ChannelName()),
-		Description:   pro.Description(),
+		ChannelDesc:   pro.ChannelDesc(),
+		AddressDesc:   pro.AddressDesc(),
 		OTP:           out,
 	})
 }

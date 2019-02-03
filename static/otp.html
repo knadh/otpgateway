@@ -2,8 +2,8 @@
     {{ template "header" .}}
     <h1>{{ .ChannelName }} verification</h1>
     <p>
-        {{ if .OTP.Description }}
-            {{ .OTP.Description }}
+        {{ if .OTP.ChannelDesc }}
+            {{ .OTP.ChannelDesc }}
         {{ else }}
             {{ .Description }}
         {{ end }}

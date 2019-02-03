@@ -17,7 +17,8 @@ type OTP struct {
 	Namespace   string        `redis:"namespace" json:"namespace"`
 	ID          string        `redis:"id" json:"id"`
 	To          string        `redis:"to" json:"to"`
-	Description string        `redis:"description" json:"description"`
+	ChannelDesc string        `redis:"channel_description" json:"channel_description"`
+	AddressDesc string        `redis:"address_description" json:"address_description"`
 	Provider    string        `redis:"provider" json:"provider"`
 	OTP         string        `redis:"otp" json:"otp"`
 	MaxAttempts int           `redis:"max_attempts" json:"max_attempts"`
@@ -141,7 +142,8 @@ func (r *redisStore) Set(namespace, id string, otp OTP) (OTP, error) {
 	c.Send("HMSET", key,
 		"otp", otp.OTP,
 		"to", otp.To,
-		"description", otp.Description,
+		"channel_description", otp.ChannelDesc,
+		"address_description", otp.AddressDesc,
 		"provider", otp.Provider,
 		"closed", false,
 		"max_attempts", otp.MaxAttempts)

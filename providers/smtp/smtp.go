@@ -98,17 +98,24 @@ func (e *emailer) ChannelName() string {
 	return channelName
 }
 
+// ChannelDesc returns help text for the e-mail verification Provider.
+func (e *emailer) ChannelDesc() string {
+	return fmt.Sprintf(`
+	We've e-mailed you a %d digit code.
+	Please check your e-mail and enter the code here
+	to complete the verification.`, maxOTPlen)
+}
+
 // AddressName returns the e-mail Provider's address name.
 func (e *emailer) AddressName() string {
 	return addressName
 }
 
-// Description returns help text for the e-mail verification Provider.
-func (e *emailer) Description() string {
-	return fmt.Sprintf(`
-		We've e-mailed you a %d digit code.
-		Please check your e-mail and enter the code here
-		to complete the verification.`, maxOTPlen)
+// AddressDesc returns the help text that is shown to the end users when
+// they're asked to enter their addresses (eg: e-mail or phone), if the OTP
+// registered without an address.
+func (e *emailer) AddressDesc() string {
+	return `Please enter the e-mail ID you want to verify`
 }
 
 // ValidateAddress "validates" an e-mail address.

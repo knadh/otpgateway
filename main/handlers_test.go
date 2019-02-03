@@ -37,9 +37,14 @@ func (d *dummyProv) AddressName() string {
 	return "dummyaddress"
 }
 
-// Description returns help text for the e-mail verification Provider.
-func (d *dummyProv) Description() string {
-	return "dummy description"
+// ChannelDesc returns help text for the e-mail verification Provider.
+func (d *dummyProv) ChannelDesc() string {
+	return "dummy channel description"
+}
+
+// AddressDesc returns help text for the address.
+func (d *dummyProv) AddressDesc() string {
+	return "dummy address description"
 }
 
 // ValidateAddress "validates" an e-mail address.

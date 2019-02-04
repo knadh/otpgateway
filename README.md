@@ -154,7 +154,9 @@ The gateway comes with a Javascript plugin that enables easy integration of the 
         // 3. Post the namespace and id to your server that will make the
         // status request to the gateway and on success, update the user's
         // address in your records as it's now verified.
-    })
+    }, function() {
+        console.log("cancelled");
+    });
 
 </script>
 ```

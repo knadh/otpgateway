@@ -21,6 +21,8 @@
     css.type = "text/css";
     css.href = _root + "/static/otp.css";
     document.querySelector("head").appendChild(css);
+    
+    var onCancel = null;
 
 	// Open an inline dialog.
 	function modal(url, title) {
@@ -33,6 +35,9 @@
 
         // Destroy modal on click-out.
         document.querySelector("#otpgateway-modal").onclick = function() {
+            if(onCancel) {
+                onCancel();
+            }
             close();
         };
         
@@ -54,28 +59,29 @@
         document.querySelector("#otpgateway-modal-wrap").remove();
     }
 
-    window.OTPGateway = function(namespace, id, cb) {
+    window.OTPGateway = function(namespace, id, cbFinish, cbCancel) {
         var win = modal(_root + "/otp/" + namespace + "/" + id + "?view=popup", "Verification");
 
         // Add a one time event listener for callbacks from the popup if
         // there's a callback.
-        if(!cb) {
-            return;
-        }
-        window.addEventListener("message", (function() {
-            function handle(e) {
-                if(e.origin.substr(_root) === -1) {
-                    return;
-                }
-                removeEventListener(e.type, handle);
+        if(cbFinish) {
+            window.addEventListener("message", (function() {
+                function handle(e) {
+                    if(e.origin.substr(_root) === -1) {
+                        return;
+                    }
+                    removeEventListener(e.type, handle);
 
-                // Trigger the callback.
-                if(e.data.hasOwnProperty("namespace") && e.data.hasOwnProperty("id")) {
-                    cb(e.data.namespace, e.data.id);
+                    // Trigger the callback.
+                    if(e.data.hasOwnProperty("namespace") && e.data.hasOwnProperty("id")) {
+                        cbFinish(e.data.namespace, e.data.id);
+                    }
+                    close()
                 }
-                close()
-            }
-            return handle;
-        }()));
+                return handle;
+            }()));
+        }
+
+        onCancel = cbCancel;
     };
 })();

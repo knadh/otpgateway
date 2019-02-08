@@ -36,10 +36,24 @@ button {
     cursor: pointer;
     border: 1px solid #4d80ff;
     min-width: 100px;
+    text-align: center;
 }
+    button .spinner {
+        display: none;
+    }
     button:hover {
         background: #333;
         border-color: #333;
+    }
+    button:disabled {
+        background: #666;
+        border: #666;
+    }
+    button:disabled .label {
+        display: none;
+    }
+    button:disabled .spinner {
+        display: inline-block;
     }
 
 .wrap {
@@ -117,6 +131,23 @@ button {
     }
     .footer a:hover {
         color: #111;
+    }
+
+.spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #ccc;
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+    -webkit-animation: spin 1s ease-in-out infinite;
+}
+    @keyframes spin {
+        to { -webkit-transform: rotate(360deg); }
+    }
+    @-webkit-keyframes spin {
+        to { -webkit-transform: rotate(360deg); }
     }
 
 @media(max-width: 500px) {

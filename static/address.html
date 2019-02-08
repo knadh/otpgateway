@@ -15,7 +15,7 @@
                 <input autofocus placeholder="{{ .AddressName }}" maxlength="{{ .MaxAddressLen }}" type="text" name="to" value="" class="to" />
             </p>
             <p>
-                <button type="submit">Continue</button>
+                <button type="submit" class="submit-button"><span class="label">Continue</span> <span class="spinner"></span></button>
             </p>
 
             {{ if .Message }}
@@ -23,5 +23,12 @@
             {{ end }}
         </div>
     </form>
+    <script>
+        (function() {
+            document.querySelector(".form").onsubmit = function() {
+                document.querySelector(".form .submit-button").setAttribute("disabled", true);
+            };
+        })();
+    </script>
     {{ template "footer" .}}
 {{ end }}

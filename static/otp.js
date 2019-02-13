@@ -67,7 +67,7 @@
         if(cbFinish) {
             window.addEventListener("message", (function() {
                 function handle(e) {
-                    if(e.origin.substr(_root) === -1) {
+                    if(e.origin.indexOf(_root) === -1) {
                         return;
                     }
                     removeEventListener(e.type, handle);

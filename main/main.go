@@ -51,8 +51,7 @@ var (
 	ko     = koanf.New(".")
 
 	// Version of the build injected at build time.
-	buildVersion = "unknown"
-	buildDate    = "unknown"
+	buildString = "unknown"
 )
 
 func initConfig() {
@@ -66,7 +65,14 @@ func initConfig() {
 		"Path to one or more TOML config files to load in order")
 	f.StringSlice("prov", []string{"smtp.prov"},
 		"Path to a provider plugin. Can specify multiple values.")
+	f.Bool("version", false, "Show build version")
 	f.Parse(os.Args[1:])
+
+	// Display version.
+	if ok, _ := f.GetBool("version"); ok {
+		fmt.Println(buildString)
+		os.Exit(0)
+	}
 
 	// Read the config files.
 	cFiles, _ := f.GetStringSlice("config")
@@ -195,12 +201,6 @@ func initFS(exe string) stuffbin.FileSystem {
 
 func main() {
 	initConfig()
-
-	// Display version.
-	if ko.Bool("version") {
-		fmt.Printf("%v\nBuild: %v", buildVersion, buildDate)
-		return
-	}
 
 	app := &App{}
 	provs, err := loadProviders(ko.Strings("prov"))

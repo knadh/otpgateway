@@ -2,6 +2,9 @@ package main
 
 import (
 	"fmt"
+	"github.com/knadh/koanf/parsers/toml"
+	"github.com/knadh/koanf/providers/file"
+	"github.com/knadh/koanf/providers/posflag"
 	"html/template"
 	"log"
 	"net/http"
@@ -11,12 +14,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/knadh/stuffbin"
-
 	"github.com/go-chi/chi"
+	"github.com/knadh/koanf"
 	"github.com/knadh/otpgateway"
+	"github.com/knadh/stuffbin"
 	flag "github.com/spf13/pflag"
-	"github.com/spf13/viper"
 )
 
 type providerTpl struct {
@@ -46,6 +48,7 @@ type App struct {
 
 var (
 	logger = log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lshortfile)
+	ko     = koanf.New(".")
 
 	// Version of the build injected at build time.
 	buildVersion = "unknown"
@@ -54,35 +57,27 @@ var (
 
 func initConfig() {
 	// Register --help handler.
-	flagSet := flag.NewFlagSet("config", flag.ContinueOnError)
-	flagSet.Usage = func() {
-		fmt.Println(flagSet.FlagUsages())
+	f := flag.NewFlagSet("config", flag.ContinueOnError)
+	f.Usage = func() {
+		fmt.Println(f.FlagUsages())
 		os.Exit(0)
 	}
-
-	// Setup the default configuration.
-	viper.SetConfigName("config")
-	viper.SetDefault("app.otp_max_attempts", 5)
-	viper.SetDefault("app.otp_ttl", 5)
-	flagSet.StringSlice("config", []string{"config.toml"},
-		"Path to one or more config files (will be merged in order)")
-	flagSet.StringSlice("provider", []string{"smtp.prov"},
+	f.StringSlice("config", []string{"config.toml"},
+		"Path to one or more TOML config files to load in order")
+	f.StringSlice("prov", []string{"smtp.prov"},
 		"Path to a provider plugin. Can specify multiple values.")
-	flagSet.Bool("version", false, "Current version of the build")
-
-	// Process flags.
-	flagSet.Parse(os.Args[1:])
-	viper.BindPFlags(flagSet)
+	f.Parse(os.Args[1:])
 
 	// Read the config files.
-	cfgs := viper.GetStringSlice("config")
-	for _, c := range cfgs {
-		viper.SetConfigFile(c)
-
-		if err := viper.MergeInConfig(); err != nil {
-			logger.Fatalf("error reading config: %s", err)
+	cFiles, _ := f.GetStringSlice("config")
+	for _, f := range cFiles {
+		log.Printf("reading config: %s", f)
+		if err := ko.Load(file.Provider(f), toml.Parser()); err != nil {
+			log.Printf("error reading config: %v", err)
 		}
 	}
+
+	ko.Load(posflag.Provider(f, ".", ko), nil)
 }
 
 // loadProviders loads otpgateway.Provider plugins from the list of given filenames.
@@ -106,7 +101,7 @@ func loadProviders(names []string) (map[string]otpgateway.Provider, error) {
 
 		// Plugin loaded. Load it's configuration.
 		var cfg otpgateway.ProviderConf
-		viper.UnmarshalKey("provider."+id, &cfg)
+		ko.Unmarshal("provider."+id, &cfg)
 		if cfg.Template == "" || cfg.Config == "" {
 			logger.Printf("WARNING: No config 'provider.%s' for '%s' in config", id, id)
 		}
@@ -123,26 +118,24 @@ func loadProviders(names []string) (map[string]otpgateway.Provider, error) {
 		}
 		out[p.ID()] = p
 	}
-
 	return out, nil
 }
 
 // loadAuth loads the namespace:token authorisation maps.
 func loadAuth() map[string]string {
 	out := make(map[string]string)
-	for i := range viper.GetStringMapString("auth") {
-		k := viper.GetStringMapString("auth." + i)
+	for _, a := range ko.MapKeys("auth") {
+		k := ko.StringMap("auth." + a)
 		var (
 			namespace, _ = k["namespace"]
 			secret, _    = k["secret"]
 		)
 
 		if namespace == "" || secret == "" {
-			logger.Fatalf("namespace or secret keys not found in auth.%s", i)
+			logger.Fatalf("namespace or secret keys not found in auth.%s", a)
 		}
 		out[k["namespace"]] = k["secret"]
 	}
-
 	return out
 }
 
@@ -150,7 +143,7 @@ func loadAuth() map[string]string {
 func loadProviderTemplates(providers []string) (map[string]*providerTpl, error) {
 	out := make(map[string]*providerTpl)
 	for _, p := range providers {
-		tplFile := viper.GetString(fmt.Sprintf("provider.%s.template", p))
+		tplFile := ko.String(fmt.Sprintf("provider.%s.template", p))
 		if tplFile == "" {
 			return nil, fmt.Errorf("no 'template' value found for 'provider.%s' in config", p)
 		}
@@ -162,7 +155,7 @@ func loadProviderTemplates(providers []string) (map[string]*providerTpl, error) 
 		}
 
 		// Parse the subject.
-		subj := viper.GetString(fmt.Sprintf("provider.%s.subject", p))
+		subj := ko.String(fmt.Sprintf("provider.%s.subject", p))
 		if subj == "" {
 			return nil, fmt.Errorf("error parsing subject for %s: %v", p, err)
 		}
@@ -197,7 +190,6 @@ func initFS(exe string) stuffbin.FileSystem {
 			log.Fatalf("error reading stuffed binary: %v", err)
 		}
 	}
-
 	return fs
 }
 
@@ -205,13 +197,13 @@ func main() {
 	initConfig()
 
 	// Display version.
-	if viper.GetBool("version") {
+	if ko.Bool("version") {
 		fmt.Printf("%v\nBuild: %v", buildVersion, buildDate)
 		return
 	}
 
 	app := &App{}
-	provs, err := loadProviders(viper.GetStringSlice("provider"))
+	provs, err := loadProviders(ko.Strings("prov"))
 	if err != nil {
 		logger.Fatal(err)
 	} else if len(provs) == 0 {
@@ -220,11 +212,11 @@ func main() {
 
 	app.providers = provs
 	app.logger = logger
-	app.otpTTL = viper.GetDuration("app.otp_ttl") * time.Second
-	app.otpMaxAttempts = viper.GetInt("app.otp_max_attempts")
-	app.RootURL = strings.TrimRight(viper.GetString("app.root_url"), "/")
-	app.LogoURL = viper.GetString("app.logo_url")
-	app.FaviconURL = viper.GetString("app.favicon_url")
+	app.otpTTL = ko.Duration("app.otp_ttl") * time.Second
+	app.otpMaxAttempts = ko.Int("app.otp_max_attempts")
+	app.RootURL = strings.TrimRight(ko.String("app.root_url"), "/")
+	app.LogoURL = ko.String("app.logo_url")
+	app.FaviconURL = ko.String("app.favicon_url")
 	app.fs = initFS(os.Args[0])
 
 	// Load provider templates.
@@ -240,7 +232,7 @@ func main() {
 
 	// Load the store.
 	var rc otpgateway.RedisConf
-	viper.UnmarshalKey("store.redis", &rc)
+	ko.Unmarshal("store.redis", &rc)
 	app.store = otpgateway.NewRedisStore(rc)
 
 	// Compile static templates.
@@ -271,9 +263,9 @@ func main() {
 
 	// HTTP Server.
 	srv := &http.Server{
-		Addr:         viper.GetString("app.address"),
-		ReadTimeout:  viper.GetDuration("ap.timeout") * time.Second,
-		WriteTimeout: viper.GetDuration("ap.timeout") * time.Second,
+		Addr:         ko.String("app.address"),
+		ReadTimeout:  ko.Duration("ap.timeout") * time.Second,
+		WriteTimeout: ko.Duration("ap.timeout") * time.Second,
 		Handler:      r,
 	}
 

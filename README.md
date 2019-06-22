@@ -21,7 +21,7 @@ Providers are written as [Go plugins](https://golang.org/pkg/plugin/) that can b
 # Usage
 Download the latest release from the [releases page](https://github.com/knadh/otpgateway/releases) or clone this repository and run `make deps && make build`. Redis is a requirement.
 - Copy config.toml.sample to config.toml and edit the configuration
-- Run `./otpgateway --provider smtp`
+- Run `./otpgateway --prov smtp`
  
 ### Built in UI
 1. Generate an OTP for a user server side in your application:

@@ -2,9 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/knadh/koanf/parsers/toml"
-	"github.com/knadh/koanf/providers/file"
-	"github.com/knadh/koanf/providers/posflag"
 	"html/template"
 	"log"
 	"net/http"
@@ -13,6 +10,10 @@ import (
 	"plugin"
 	"strings"
 	"time"
+
+	"github.com/knadh/koanf/parsers/toml"
+	"github.com/knadh/koanf/providers/file"
+	"github.com/knadh/koanf/providers/posflag"
 
 	"github.com/go-chi/chi"
 	"github.com/knadh/koanf"
@@ -236,7 +237,7 @@ func main() {
 	app.store = otpgateway.NewRedisStore(rc)
 
 	// Compile static templates.
-	tpl, err := stuffbin.ParseTemplatesGlob(app.fs, "/static/*.html")
+	tpl, err := stuffbin.ParseTemplatesGlob(nil, app.fs, "/static/*.html")
 	if err != nil {
 		logger.Fatalf("error compiling template: %v", err)
 	}

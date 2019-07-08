@@ -10,7 +10,7 @@ STATIC := static/
 .PHONY: build
 build:
 	# Compile the smtp provider plugin.
-	go build -ldflags="-s -w" -buildmode=plugin -linkshared -o ${SMTP_BIN} providers/smtp/smtp.go
+	go build -ldflags="-s -w" -buildmode=plugin -o ${SMTP_BIN} providers/smtp/smtp.go
 
 	# Compile the main application.
 	go build -o ${BIN} -ldflags="-s -w -X 'main.buildString=${BUILDSTR}'" main/*.go

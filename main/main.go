@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/knadh/koanf/parsers/toml"
+	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/providers/posflag"
 
@@ -82,6 +83,13 @@ func initConfig() {
 		if err := ko.Load(file.Provider(f), toml.Parser()); err != nil {
 			log.Printf("error reading config: %v", err)
 		}
+	}
+	// Load environment variables and merge into the loaded config.
+	if err := ko.Load(env.Provider("OTP_GATEWAY_", ".", func(s string) string {
+		return strings.Replace(strings.ToLower(
+			strings.TrimPrefix(s, "OTP_GATEWAY_")), "__", ".", -1)
+	}), nil); err != nil {
+		log.Printf("error loading env config: %v", err)
 	}
 
 	ko.Load(posflag.Provider(f, ".", ko), nil)

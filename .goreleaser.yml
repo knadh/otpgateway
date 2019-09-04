@@ -1,0 +1,22 @@
+# .goreleaser.yml
+builds:
+  - binary: otpgateway
+    main: ./main
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+
+before:
+  hooks:
+  - make build
+
+archive:
+  format: tar.gz
+  files:
+    - static/smtp.tpl
+    - config.toml.sample
+    - smtp.prov
+    - README.md
+    - LICENSE

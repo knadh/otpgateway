@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/jordan-wright/email"
-	"github.com/knadh/otpgateway"
 )
 
 const (
@@ -43,7 +42,7 @@ type emailer struct {
 }
 
 // New creates and returns an e-mail Provider backend.
-func New(jsonCfg []byte) (otpgateway.Provider, error) {
+func New(jsonCfg []byte) (interface{}, error) {
 	var c cfg
 	if err := json.Unmarshal(jsonCfg, &c); err != nil {
 		return nil, fmt.Errorf("error reading config: %v", err)

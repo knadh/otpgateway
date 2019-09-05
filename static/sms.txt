@@ -1,0 +1,1 @@
+{{ .OTP }} is your OTP / verification code for {{ .Namespace }}.

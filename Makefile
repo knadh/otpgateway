@@ -8,7 +8,7 @@ SMTP_BIN := smtp.prov
 SOLSMS_BIN := solsms.prov
 STATIC := static/
 
-CI_REGISTRY_IMAGE := knadh/otpgateway
+CI_REGISTRY_IMAGE := kailashnadh/otpgateway
 CI_COMMIT_TAG := $(shell git tag | tail -n 1)
 
 .PHONY: build

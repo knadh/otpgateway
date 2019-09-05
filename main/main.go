@@ -101,9 +101,9 @@ func loadProviders(names []string) (map[string]otpgateway.Provider, error) {
 		if err != nil {
 			return nil, fmt.Errorf("New() function not found in plugin '%s': %v", id, err)
 		}
-		f, ok := newFunc.(func([]byte) (otpgateway.Provider, error))
+		f, ok := newFunc.(func([]byte) (interface{}, error))
 		if !ok {
-			return nil, fmt.Errorf("New() function is of invalid type in plugin '%s'", id)
+			return nil, fmt.Errorf("New() function is of invalid type (%T) in plugin '%s'", newFunc, id)
 		}
 
 		// Plugin loaded. Load it's configuration.
@@ -114,11 +114,16 @@ func loadProviders(names []string) (map[string]otpgateway.Provider, error) {
 		}
 
 		// Initialize the plugin.
-		p, err := f([]byte(cfg.Config))
+		provider, err := f([]byte(cfg.Config))
 		if err != nil {
 			return nil, fmt.Errorf("error initializing provider plugin '%s': %v", id, err)
 		}
 		logger.Printf("loaded provider plugin '%s' from %s", id, fName)
+
+		p, ok := provider.(otpgateway.Provider)
+		if !ok {
+			return nil, fmt.Errorf("New() function does not return a provider that satisfies otpgateway.Provider (%T) in plugin '%s'", provider, id)
+		}
 
 		if p.ID() != id {
 			return nil, fmt.Errorf("provider plugin ID doesn't match '%s' != %s", id, p.ID())

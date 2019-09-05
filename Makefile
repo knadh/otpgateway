@@ -5,12 +5,16 @@ BUILDSTR := ${VERSION} (build "\\\#"${LAST_COMMIT} $(shell date '+%Y-%m-%d %H:%M
 
 BIN := otpgateway
 SMTP_BIN := smtp.prov
+SOLSMS_BIN := solsms.prov
 STATIC := static/
 
 .PHONY: build
 build:
 	# Compile the smtp provider plugin.
 	go build -ldflags="-s -w" -buildmode=plugin -o ${SMTP_BIN} providers/smtp/smtp.go
+
+	# Compile the solsms provider plugin.
+	go build -ldflags="-s -w" -buildmode=plugin -o ${SOLSMS_BIN} providers/solsms/solsms.go
 
 	# Compile the main application.
 	go build -o ${BIN} -ldflags="-s -w -X 'main.buildString=${BUILDSTR}'" main/*.go

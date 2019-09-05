@@ -30,6 +30,12 @@ port = "6379"
 user = ""
 password = ""
 
+[provider.solsms]
+subject = "Verification"
+template = "static/sms.txt"
+template_type = "text"
+config = '{"APIKey": "YourSolutionsInfiniKey", "Sender": "YourID"}'
+
 [provider.smtp]
 # Supported Go template tags in the 'subject' field and the template file
 # {{ .To }} - The receipient's To address given to the provider (eg: e-mail address or phone)

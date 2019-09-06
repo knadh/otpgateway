@@ -89,6 +89,20 @@ func handleGetProviders(w http.ResponseWriter, r *http.Request) {
 	sendResponse(w, out)
 }
 
+func handleHealthCheck(w http.ResponseWriter, r *http.Request) {
+	// check if store is reachable
+	var (
+		app = r.Context().Value("app").(*App)
+		err = app.store.Ping()
+	)
+	if err != nil {
+		sendErrorResponse(w, "unable to reach store", http.StatusServiceUnavailable, nil)
+		return
+	}
+	sendResponse(w, "OK")
+	return
+}
+
 // handleSetOTP creates a new OTP while respecting maximum attempts
 // and TTL values.
 func handleSetOTP(w http.ResponseWriter, r *http.Request) {

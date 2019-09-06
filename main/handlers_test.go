@@ -124,6 +124,7 @@ func init() {
 	authCreds := map[string]string{dummyNamespace: dummySecret}
 	r := chi.NewRouter()
 	r.Get("/api/providers", auth(authCreds, wrap(app, handleGetProviders)))
+	r.Get("/api/health", auth(authCreds, wrap(app, handleHealthCheck)))
 	r.Put("/api/otp/{id}", auth(authCreds, wrap(app, handleSetOTP)))
 	r.Post("/api/otp/{id}", auth(authCreds, wrap(app, handleVerifyOTP)))
 	r.Get("/otp/{namespace}/{id}", wrap(app, handleOTPView))
@@ -141,6 +142,13 @@ func TestGetProviders(t *testing.T) {
 	assert.Equal(t, http.StatusOK, r.StatusCode, "non 200 response")
 	assert.Equal(t, out.Data, []interface{}{dummyProvider}, "providers don't match")
 }
+
+func TestHealthCheck(t *testing.T) {
+	var out httpResp
+	r := testRequest(t, http.MethodGet, "/api/health", nil, &out)
+	assert.Equal(t, http.StatusOK, r.StatusCode, "non 200 response")
+}
+
 func TestSetOTP(t *testing.T) {
 	rdis.FlushDB()
 	var (

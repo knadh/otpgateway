@@ -29,7 +29,7 @@ deps:
 
 .PHONY: test
 test:
-	go test
+	go test ./...
 
 clean:
 	go clean

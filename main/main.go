@@ -264,9 +264,11 @@ func main() {
 	// Register handles.
 	r := chi.NewRouter()
 	r.Get("/api/providers", auth(authCreds, wrap(app, handleGetProviders)))
+	r.Get("/api/health", wrap(app, handleHealthCheck))
 	r.Put("/api/otp/{id}", auth(authCreds, wrap(app, handleSetOTP)))
 	r.Post("/api/otp/{id}/status", auth(authCreds, wrap(app, handleCheckOTPStatus)))
 	r.Post("/api/otp/{id}", auth(authCreds, wrap(app, handleVerifyOTP)))
+
 	r.Get("/otp/{namespace}/{id}", wrap(app, handleOTPView))
 	r.Get("/otp/{namespace}/{id}/address", wrap(app, handleAddressView))
 	r.Post("/otp/{namespace}/{id}/address", wrap(app, handleAddressView))

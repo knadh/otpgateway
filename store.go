@@ -49,6 +49,9 @@ type Store interface {
 
 	// Delete deletes the OTP saved against a given ID.
 	Delete(namespace, id string) error
+
+	// Ping checks if store is reachable
+	Ping() error
 }
 
 // redisStore implements a  Redis Store.
@@ -95,6 +98,14 @@ func NewRedisStore(c RedisConf) Store {
 		pool:      pool,
 		keyPrefix: c.KeyPrefix,
 	}
+}
+
+// Ping checks if Redis server is reachable
+func (r *redisStore) Ping() error {
+	c := r.pool.Get()
+	defer c.Close()
+	_, err := c.Do("PING") // Test redis connection
+	return err
 }
 
 // Check checks the attempt count and TTL duration against an ID.

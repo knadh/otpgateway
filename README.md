@@ -18,7 +18,8 @@ The application is agnostic of the address and the OTP or verification code invo
 
 Providers are written as [Go plugins](https://golang.org/pkg/plugin/) that can be dynamically loaded into the gateway. An SMTP provider is bundled that enables e-mail address verifications by sending an OTP / verification link to user's e-mails. Refer to `providers/smtp/smtp.go`. To write a custom provider, copy the `smtp` plugin and change the methods to conform to the `otpgateway.Provider` interface and compile it as a go plugin (see the `Makefile`).
 
-- [solsms](https://github.com/knadh/otpgateway-solsms) - SMS provider for Solutions Infini (Indian gateway)
+- solsms   - SMS provider for Solutions Infini (Indian gateway).
+- pinpoint - SMS provider by AWS.
 
 # Usage
 
@@ -42,7 +43,7 @@ Use the APIs described below to build your own UI.
 
 ### List providers
 
-`curl localhost:9000/api/providers`
+`curl -u "myAppName:mySecret" localhost:9000/api/providers`
 
 ```json
 {

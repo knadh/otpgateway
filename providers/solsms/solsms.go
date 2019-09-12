@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -19,6 +18,7 @@ const (
 	maxAddresslen = 10
 	maxOTPlen     = 6
 	apiURL        = "https://api-alerts.kaleyra.com/v4/"
+	StatusOK      = "OK"
 )
 
 var reNum = regexp.MustCompile(`\+?([0-9]){8,15}`)
@@ -35,6 +35,13 @@ type cfg struct {
 	Sender       string `json:"Sender"`
 	Timeout      int    `json:"Timeout"`
 	MaxIdleConns int    `json:"MaxIdleConns"`
+}
+
+// solSMSAPIResp represents the response from solsms API.
+type solSMSAPIResp struct {
+	Status  string      `json:"status"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data"`
 }
 
 // New returns an instance of the SMS package. cfg is configuration
@@ -131,8 +138,14 @@ func (s *sms) Push(to, subject string, body []byte) error {
 	if err != nil {
 		return err
 	}
-	if !bytes.Contains(b, []byte("responsecode 200")) {
-		return errors.New(string(b))
+
+	// We now unmarshal the body.
+	r := solSMSAPIResp{}
+	if err := json.Unmarshal(b, &r); err != nil {
+		return err
+	}
+	if r.Status != StatusOK {
+		return errors.New(r.Message)
 	}
 	return nil
 }

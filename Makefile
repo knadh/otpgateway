@@ -6,6 +6,7 @@ BUILDSTR := ${VERSION} (build "\\\#"${LAST_COMMIT} $(shell date '+%Y-%m-%d %H:%M
 BIN := otpgateway
 SMTP_BIN := smtp.prov
 SOLSMS_BIN := solsms.prov
+PINPOINT_BIN := pinpoint.prov
 STATIC := static/
 
 CI_REGISTRY_IMAGE := kailashnadh/otpgateway
@@ -18,6 +19,9 @@ build:
 
 	# Compile the solsms provider plugin.
 	go build -ldflags="-s -w" -buildmode=plugin -o ${SOLSMS_BIN} providers/solsms/solsms.go
+
+	# Compile the pinpoint provider plugin.
+	go build -ldflags="-s -w" -buildmode=plugin -o ${PINPOINT_BIN} providers/pinpoint/pinpoint.go
 
 	# Compile the main application.
 	go build -o ${BIN} -ldflags="-s -w -X 'main.buildString=${BUILDSTR}'" main/*.go

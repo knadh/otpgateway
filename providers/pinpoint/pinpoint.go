@@ -4,21 +4,23 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"net/url"
 	"regexp"
-	"time"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/pinpoint"
 )
 
 const (
-	providerID    = "solsms"
+	providerID    = "pinpoint"
 	channelName   = "SMS"
 	addressName   = "Mobile number"
 	maxAddresslen = 10
 	maxOTPlen     = 6
-	apiURL        = "https://api-alerts.kaleyra.com/v4/"
-	StatusOK      = "OK"
+)
+
+var (
+	channelType = "SMS"
 )
 
 var reNum = regexp.MustCompile(`\+?([0-9]){8,15}`)
@@ -26,60 +28,42 @@ var reNum = regexp.MustCompile(`\+?([0-9]){8,15}`)
 // sms is the default representation of the sms interface.
 type sms struct {
 	cfg *cfg
-	h   *http.Client
+	p   *pinpoint.Pinpoint
 }
 
 type cfg struct {
-	RootURL      string `json:"RootURL"`
-	APIKey       string `json:"APIKey"`
-	Sender       string `json:"Sender"`
-	Timeout      int    `json:"Timeout"`
-	MaxIdleConns int    `json:"MaxIdleConns"`
-}
-
-// solSMSAPIResp represents the response from solsms API.
-type solSMSAPIResp struct {
-	Status  string      `json:"status"`
-	Message string      `json:"message"`
-	Data    interface{} `json:"data"`
+	AppID       string `json:"AppID"`
+	Region      string `json:"Region"`
+	MessageType string `json:"MessageType"`
+	SenderID    string `json:"SenderID"`
 }
 
 // New returns an instance of the SMS package. cfg is configuration
 // represented as a JSON string. Supported options are.
 // {
-// 	RootURL: "", // Optional root URL of the API,
-// 	APIKey: "", // API Key,
-// 	Sender: "", // Sender name
-// 	Timeout: 5 // Optional HTTP timeout in seconds
+// 	AppID: "", // Application ID for amazon pinpoint service,
+// 	Region: "", // AWS region name,
+// 	MessageType: "", // MessageType to signify if it is transactional sms,
+// 	SenderID: "" // Unique sender id
 // }
 func New(jsonCfg []byte) (interface{}, error) {
 	var c *cfg
 	if err := json.Unmarshal(jsonCfg, &c); err != nil {
 		return nil, err
 	}
-	if c.RootURL == "" {
-		c.RootURL = apiURL
+	if c.AppID == "" {
+		return nil, errors.New("invalid AppID")
 	}
-	if c.APIKey == "" || c.Sender == "" {
-		return nil, errors.New("invalid APIKey or Sender")
+	if c.Region == "" {
+		return nil, errors.New("invalid Region")
 	}
 
-	// Initialize the HTTP client.
-	t := 5
-	if c.Timeout != 0 {
-		t = c.Timeout
-	}
-	h := &http.Client{
-		Timeout: time.Duration(t) * time.Second,
-		Transport: &http.Transport{
-			MaxIdleConnsPerHost:   1,
-			ResponseHeaderTimeout: time.Second * time.Duration(t),
-		},
-	}
+	sess := session.Must(session.NewSession())
+	svc := pinpoint.New(sess, aws.NewConfig().WithRegion(c.Region))
 
 	return &sms{
 		cfg: c,
-		h:   h}, nil
+		p:   svc}, nil
 }
 
 // ID returns the Provider's ID.
@@ -119,34 +103,29 @@ func (s *sms) ValidateAddress(to string) error {
 
 // Push pushes out an SMS.
 func (s *sms) Push(to, subject string, body []byte) error {
-	p := url.Values{}
-	p.Set("method", "sms")
-	p.Set("api_key", s.cfg.APIKey)
-	p.Set("sender", s.cfg.Sender)
-	p.Set("to", to)
-	p.Set("message", string(body))
+	var msg = string(body)
 
-	// Make the request.
-	resp, err := s.h.PostForm(s.cfg.RootURL, p)
-	if err != nil {
+	payload := &pinpoint.SendMessagesInput{
+		ApplicationId: &s.cfg.AppID,
+		MessageRequest: &pinpoint.MessageRequest{
+			Addresses: map[string]*pinpoint.AddressConfiguration{
+				to: &pinpoint.AddressConfiguration{
+					ChannelType: &channelType,
+				},
+			},
+			MessageConfiguration: &pinpoint.DirectMessageConfiguration{
+				SMSMessage: &pinpoint.SMSMessage{
+					Body:        &msg,
+					MessageType: &s.cfg.MessageType,
+					SenderId:    &s.cfg.SenderID,
+				},
+			},
+		},
+	}
+	if _, err := s.p.SendMessages(payload); err != nil {
 		return err
 	}
-	defer resp.Body.Close()
 
-	// Read the response.
-	b, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
-	// We now unmarshal the body.
-	r := solSMSAPIResp{}
-	if err := json.Unmarshal(b, &r); err != nil {
-		return err
-	}
-	if r.Status != StatusOK {
-		return errors.New(r.Message)
-	}
 	return nil
 }
 

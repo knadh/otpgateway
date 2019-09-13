@@ -215,7 +215,7 @@ func initFS(exe string) stuffbin.FileSystem {
 
 func main() {
 	initConfig()
-
+	log.Println(ko.All())
 	app := &App{}
 	provs, err := loadProviders(ko.Strings("prov"))
 	if err != nil {

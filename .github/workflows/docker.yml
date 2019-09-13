@@ -1,0 +1,14 @@
+name: Go
+on: [push]
+jobs:
+
+  build:
+    name: Docker
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v1
+
+    - name: Build
+      run: docker build .

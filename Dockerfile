@@ -10,7 +10,7 @@ FROM alpine:latest AS deploy
 RUN apk --no-cache add ca-certificates
 WORKDIR /otpgateway/
 COPY --from=builder /otpgateway/static/ static/
-COPY --from=builder /otpgateway/otpgateway /otpgateway/config.toml.sample /otpgateway/smtp.prov /otpgateway/solsms.prov ./
+COPY --from=builder /otpgateway/otpgateway /otpgateway/config.toml.sample /otpgateway/smtp.prov /otpgateway/solsms.prov /otpgateway/pinpoint.prov ./
 RUN mkdir -p /etc/otpgateway && cp config.toml.sample /etc/otpgateway/config.toml
 VOLUME ["/etc/otpgateway"]
 CMD ["./otpgateway", "--config", "/etc/otpgateway/config.toml"]

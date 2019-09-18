@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/pinpoint"
 )
@@ -32,17 +34,21 @@ type sms struct {
 }
 
 type cfg struct {
-	AppID       string `json:"AppID"`
-	Region      string `json:"Region"`
-	MessageType string `json:"MessageType"`
-	SenderID    string `json:"SenderID"`
+	AppID        string `json:"AppID"`
+	AWSAccessKey string `json:"AWSAccessKey"`
+	AWSSecretKey string `json:"AWSSecretKey"`
+	AWSRegion    string `json:"AWSRegion"`
+	MessageType  string `json:"MessageType"`
+	SenderID     string `json:"SenderID"`
 }
 
 // New returns an instance of the SMS package. cfg is configuration
 // represented as a JSON string. Supported options are.
 // {
 // 	AppID: "", // Application ID for amazon pinpoint service,
-// 	Region: "", // AWS region name,
+// 	AWSAccessKey: "", // AWS access key,
+// 	AWSSecretKey: "", // AWS secret key,
+// 	AWSRegion: "", // AWS region name,
 // 	MessageType: "", // MessageType to signify if it is transactional sms,
 // 	SenderID: "" // Unique sender id
 // }
@@ -51,15 +57,27 @@ func New(jsonCfg []byte) (interface{}, error) {
 	if err := json.Unmarshal(jsonCfg, &c); err != nil {
 		return nil, err
 	}
+
+	// Validations.
 	if c.AppID == "" {
 		return nil, errors.New("invalid AppID")
 	}
-	if c.Region == "" {
-		return nil, errors.New("invalid Region")
+	if c.AWSRegion == "" {
+		return nil, errors.New("invalid AWSRegion")
+	}
+	if c.AWSAccessKey == "" {
+		return nil, errors.New("invalid AWSAccessKey")
+	}
+	if c.AWSSecretKey == "" {
+		return nil, errors.New("invalid AWSSecretKey")
 	}
 
 	sess := session.Must(session.NewSession())
-	svc := pinpoint.New(sess, aws.NewConfig().WithRegion(c.Region))
+	svc := pinpoint.New(sess,
+		aws.NewConfig().
+			WithCredentials(credentials.NewStaticCredentials(c.AWSAccessKey, c.AWSSecretKey, "")).
+			WithRegion(c.AWSRegion),
+	)
 
 	return &sms{
 		cfg: c,
@@ -109,7 +127,7 @@ func (s *sms) Push(to, subject string, body []byte) error {
 		ApplicationId: &s.cfg.AppID,
 		MessageRequest: &pinpoint.MessageRequest{
 			Addresses: map[string]*pinpoint.AddressConfiguration{
-				to: &pinpoint.AddressConfiguration{
+				sanitizePhone(to): &pinpoint.AddressConfiguration{
 					ChannelType: &channelType,
 				},
 			},
@@ -142,4 +160,16 @@ func (s *sms) MaxOTPLen() int {
 // MaxBodyLen returns the max permitted body size.
 func (s *sms) MaxBodyLen() int {
 	return 140
+}
+
+func sanitizePhone(phone string) string {
+	phone = strings.TrimSpace(phone)
+	// If length is 10 then assume it as Indian phone number
+	if len(phone) == 10 {
+		return "+91" + phone
+	} else if len(phone) > 10 && strings.HasPrefix(phone, "00") {
+		return "+" + phone[2:]
+	} else {
+		return phone
+	}
 }

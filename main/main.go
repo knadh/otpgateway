@@ -163,26 +163,25 @@ func loadAuth() map[string]string {
 func loadProviderTemplates(providers []string) (map[string]*providerTpl, error) {
 	out := make(map[string]*providerTpl)
 	for _, p := range providers {
-		tplFile := ko.String(fmt.Sprintf("provider.%s.template", p))
-		if tplFile == "" {
-			return nil, fmt.Errorf("no 'template' value found for 'provider.%s' in config", p)
+		var (
+			tplFile      = ko.String(fmt.Sprintf("provider.%s.template", p))
+			subj         = ko.String(fmt.Sprintf("provider.%s.subject", p))
+			tpl, subjTpl *template.Template
+			err          error
+		)
+		// Optional template and subject file.
+		if tplFile != "" {
+			// Parse the template file.
+			tpl, err = template.ParseFiles(tplFile)
+			if err != nil {
+				return nil, fmt.Errorf("error parsing template %s for %s: %v", tplFile, p, err)
+			}
 		}
-
-		// Parse the template file.
-		tpl, err := template.ParseFiles(tplFile)
-		if err != nil {
-			return nil, fmt.Errorf("error parsing template %s for %s: %v", tplFile, p, err)
-		}
-
-		// Parse the subject.
-		subj := ko.String(fmt.Sprintf("provider.%s.subject", p))
-		if subj == "" {
-			return nil, fmt.Errorf("error parsing subject for %s: %v", p, err)
-		}
-
-		subjTpl, err := template.New("subject").Parse(subj)
-		if err != nil {
-			return nil, fmt.Errorf("error parsing template %s: %v", p, err)
+		if subj != "" {
+			subjTpl, err = template.New("subject").Parse(subj)
+			if err != nil {
+				return nil, fmt.Errorf("error parsing template %s: %v", p, err)
+			}
 		}
 
 		out[p] = &providerTpl{

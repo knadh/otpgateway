@@ -562,11 +562,16 @@ func push(otp otpgateway.OTP, tpl *providerTpl, p otpgateway.Provider, rootURL s
 		}
 	)
 
-	if err := tpl.subject.Execute(subj, data); err != nil {
-		return err
+	if tpl.subject != nil {
+		if err := tpl.subject.Execute(subj, data); err != nil {
+			return err
+		}
 	}
-	if err := tpl.tpl.Execute(out, data); err != nil {
-		return err
+
+	if tpl.tpl != nil {
+		if err := tpl.tpl.Execute(out, data); err != nil {
+			return err
+		}
 	}
 
 	return p.Push(otp, string(subj.Bytes()), out.Bytes())

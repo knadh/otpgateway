@@ -46,7 +46,7 @@ type Provider interface {
 	// Push pushes a message. Depending on the the Provider,
 	// implementation, this can either cause the message to
 	// be sent immediately or be queued waiting for a Flush().
-	Push(to, subject string, body []byte) error
+	Push(otp OTP, subject string, body []byte) error
 
 	// MaxAddressLen returns the maximum allowed length of the 'to' address.
 	MaxAddressLen() int

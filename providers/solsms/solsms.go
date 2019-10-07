@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"regexp"
 	"time"
+
+	"github.com/knadh/otpgateway"
 )
 
 const (
@@ -118,12 +120,12 @@ func (s *sms) ValidateAddress(to string) error {
 }
 
 // Push pushes out an SMS.
-func (s *sms) Push(to, subject string, body []byte) error {
+func (s *sms) Push(otp otpgateway.OTP, subject string, body []byte) error {
 	p := url.Values{}
 	p.Set("method", "sms")
 	p.Set("api_key", s.cfg.APIKey)
 	p.Set("sender", s.cfg.Sender)
-	p.Set("to", to)
+	p.Set("to", otp.To)
 	p.Set("message", string(body))
 
 	// Make the request.

@@ -569,7 +569,7 @@ func push(otp otpgateway.OTP, tpl *providerTpl, p otpgateway.Provider, rootURL s
 		return err
 	}
 
-	return p.Push(otp.To, string(subj.Bytes()), out.Bytes())
+	return p.Push(otp, string(subj.Bytes()), out.Bytes())
 }
 
 func getURL(rootURL string, otp otpgateway.OTP, check bool) string {

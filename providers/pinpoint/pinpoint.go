@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/pinpoint"
+	"github.com/knadh/otpgateway"
 )
 
 const (
@@ -120,14 +121,14 @@ func (s *sms) ValidateAddress(to string) error {
 }
 
 // Push pushes out an SMS.
-func (s *sms) Push(to, subject string, body []byte) error {
+func (s *sms) Push(otp otpgateway.OTP, subject string, body []byte) error {
 	var msg = string(body)
 
 	payload := &pinpoint.SendMessagesInput{
 		ApplicationId: &s.cfg.AppID,
 		MessageRequest: &pinpoint.MessageRequest{
 			Addresses: map[string]*pinpoint.AddressConfiguration{
-				sanitizePhone(to): &pinpoint.AddressConfiguration{
+				sanitizePhone(otp.To): &pinpoint.AddressConfiguration{
 					ChannelType: &channelType,
 				},
 			},

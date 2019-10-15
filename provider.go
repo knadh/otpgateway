@@ -1,5 +1,7 @@
 package otpgateway
 
+import "github.com/knadh/otpgateway/models"
+
 // ProviderConf represents the common confoguration types for a Provider.
 type ProviderConf struct {
 	Template string `mapstructure:"template"`
@@ -46,7 +48,7 @@ type Provider interface {
 	// Push pushes a message. Depending on the the Provider,
 	// implementation, this can either cause the message to
 	// be sent immediately or be queued waiting for a Flush().
-	Push(otp OTP, subject string, body []byte) error
+	Push(otp models.OTP, subject string, body []byte) error
 
 	// MaxAddressLen returns the maximum allowed length of the 'to' address.
 	MaxAddressLen() int

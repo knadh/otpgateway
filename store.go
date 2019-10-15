@@ -1,47 +1,30 @@
 package otpgateway
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
 
 	"github.com/gomodule/redigo/redis"
+	"github.com/knadh/otpgateway/models"
 )
 
 // ErrNotExist is thrown when an OTP (requested by namespace / ID)
 // does not exist.
 var ErrNotExist = errors.New("the OTP does not exist")
 
-// OTP contains the information about an OTP.
-type OTP struct {
-	Namespace   string          `redis:"namespace" json:"namespace"`
-	ID          string          `redis:"id" json:"id"`
-	To          string          `redis:"to" json:"to"`
-	ChannelDesc string          `redis:"channel_description" json:"channel_description"`
-	AddressDesc string          `redis:"address_description" json:"address_description"`
-	Extra       json.RawMessage `redis:"extra" json:"extra"`
-	Provider    string          `redis:"provider" json:"provider"`
-	OTP         string          `redis:"otp" json:"otp"`
-	MaxAttempts int             `redis:"max_attempts" json:"max_attempts"`
-	Attempts    int             `redis:"attempts" json:"attempts"`
-	Closed      bool            `redis:"closed" json:"closed"`
-	TTL         time.Duration   `redis:"-" json:"-"`
-	TTLSeconds  float64         `redis:"-" json:"ttl"`
-}
-
 // Store represents a storage backend where OTP data is stored.
 type Store interface {
 	// Set sets an OTP against an ID. Every Set() increments the attempts
 	// count against the ID that was initially set.
-	Set(namespace, id string, otp OTP) (OTP, error)
+	Set(namespace, id string, otp models.OTP) (models.OTP, error)
 
 	// SetAddress sets (updates) the address on an existing OTP.
 	SetAddress(namespace, id, address string) error
 
 	// Check checks the attempt count and TTL duration against an ID.
 	// Passing counter=true increments the attempt counter.
-	Check(namespace, id string, counter bool) (OTP, error)
+	Check(namespace, id string, counter bool) (models.OTP, error)
 
 	// Close closes an OTP and marks it as done (verified).
 	// After this, the OTP has to expire after a TTL or be deleted.
@@ -110,7 +93,7 @@ func (r *redisStore) Ping() error {
 
 // Check checks the attempt count and TTL duration against an ID.
 // Passing count=true increments the attempt counter.
-func (r *redisStore) Check(namespace, id string, counter bool) (OTP, error) {
+func (r *redisStore) Check(namespace, id string, counter bool) (models.OTP, error) {
 	c := r.pool.Get()
 	defer c.Close()
 
@@ -141,7 +124,7 @@ func (r *redisStore) Check(namespace, id string, counter bool) (OTP, error) {
 }
 
 // Set sets an OTP in the store.
-func (r *redisStore) Set(namespace, id string, otp OTP) (OTP, error) {
+func (r *redisStore) Set(namespace, id string, otp models.OTP) (models.OTP, error) {
 	c := r.pool.Get()
 	defer c.Close()
 
@@ -217,10 +200,10 @@ func (r *redisStore) Delete(namespace, id string) error {
 }
 
 // get begins a transaction.
-func (r *redisStore) get(namespace, id string, c redis.Conn) (OTP, error) {
+func (r *redisStore) get(namespace, id string, c redis.Conn) (models.OTP, error) {
 	var (
 		key = r.makeKey(namespace, id)
-		out = OTP{
+		out = models.OTP{
 			Namespace: namespace,
 			ID:        id,
 		}

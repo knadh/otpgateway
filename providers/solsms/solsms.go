@@ -10,7 +10,7 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/knadh/otpgateway"
+	"github.com/knadh/otpgateway/models"
 )
 
 const (
@@ -20,7 +20,7 @@ const (
 	maxAddresslen = 10
 	maxOTPlen     = 6
 	apiURL        = "https://api-alerts.kaleyra.com/v4/"
-	StatusOK      = "OK"
+	statusOK      = "OK"
 )
 
 var reNum = regexp.MustCompile(`\+?([0-9]){8,15}`)
@@ -120,8 +120,8 @@ func (s *sms) ValidateAddress(to string) error {
 }
 
 // Push pushes out an SMS.
-func (s *sms) Push(otp otpgateway.OTP, subject string, body []byte) error {
-	p := url.Values{}
+func (s *sms) Push(otp models.OTP, subject string, body []byte) error {
+	var p = url.Values{}
 	p.Set("method", "sms")
 	p.Set("api_key", s.cfg.APIKey)
 	p.Set("sender", s.cfg.Sender)
@@ -146,7 +146,7 @@ func (s *sms) Push(otp otpgateway.OTP, subject string, body []byte) error {
 	if err := json.Unmarshal(b, &r); err != nil {
 		return err
 	}
-	if r.Status != StatusOK {
+	if r.Status != statusOK {
 		return errors.New(r.Message)
 	}
 	return nil

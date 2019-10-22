@@ -117,7 +117,7 @@ func loadProviders(names []string) (map[string]otpgateway.Provider, error) {
 		// Plugin loaded. Load it's configuration.
 		var cfg otpgateway.ProviderConf
 		ko.Unmarshal("provider."+id, &cfg)
-		if cfg.Template == "" || cfg.Config == "" {
+		if cfg.Config == "" {
 			logger.Printf("WARNING: No config 'provider.%s' for '%s' in config", id, id)
 		}
 

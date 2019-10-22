@@ -13,6 +13,7 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/knadh/otpgateway"
+	"github.com/knadh/otpgateway/models"
 )
 
 const (
@@ -35,7 +36,7 @@ type httpResp struct {
 }
 
 type otpResp struct {
-	otpgateway.OTP
+	models.OTP
 	URL string `json:"url"`
 }
 
@@ -55,7 +56,7 @@ type tpl struct {
 	AddressDesc   string
 	MaxAddressLen int
 	MaxOTPLen     int
-	OTP           otpgateway.OTP
+	OTP           models.OTP
 	Locked        bool
 	Closed        bool
 	Message       string
@@ -194,7 +195,7 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create the OTP.
-	newOTP, err := app.store.Set(namespace, id, otpgateway.OTP{
+	newOTP, err := app.store.Set(namespace, id, models.OTP{
 		OTP:         otpVal,
 		To:          to,
 		ChannelDesc: channelDesc,
@@ -302,7 +303,7 @@ func handleOTPView(w http.ResponseWriter, r *http.Request) {
 		id        = chi.URLParam(r, "id")
 		otp       = r.FormValue("otp")
 
-		out    otpgateway.OTP
+		out    models.OTP
 		otpErr error
 	)
 
@@ -465,7 +466,7 @@ func handleAddressView(w http.ResponseWriter, r *http.Request) {
 }
 
 // verifyOTP validates an OTP against user input.
-func verifyOTP(namespace, id, otp string, app *App) (otpgateway.OTP, error) {
+func verifyOTP(namespace, id, otp string, app *App) (models.OTP, error) {
 	// Check the OTP.
 	out, err := app.store.Check(namespace, id, true)
 	if err != nil {
@@ -540,7 +541,7 @@ func generateRandomString(totalLen int, chars string) (string, error) {
 }
 
 // isLocked tells if an OTP is locked after exceeding attempts.
-func isLocked(otp otpgateway.OTP) bool {
+func isLocked(otp models.OTP) bool {
 	if otp.Attempts >= otp.MaxAttempts {
 		return true
 	}
@@ -548,7 +549,7 @@ func isLocked(otp otpgateway.OTP) bool {
 }
 
 // push compiles a message template and pushes it to the provider.
-func push(otp otpgateway.OTP, tpl *providerTpl, p otpgateway.Provider, rootURL string) error {
+func push(otp models.OTP, tpl *providerTpl, p otpgateway.Provider, rootURL string) error {
 	var (
 		subj = &bytes.Buffer{}
 		out  = &bytes.Buffer{}
@@ -577,7 +578,7 @@ func push(otp otpgateway.OTP, tpl *providerTpl, p otpgateway.Provider, rootURL s
 	return p.Push(otp, string(subj.Bytes()), out.Bytes())
 }
 
-func getURL(rootURL string, otp otpgateway.OTP, check bool) string {
+func getURL(rootURL string, otp models.OTP, check bool) string {
 	if check {
 		return rootURL + fmt.Sprintf(uriCheck, otp.Namespace, otp.ID, otp.OTP)
 	}

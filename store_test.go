@@ -7,13 +7,14 @@ import (
 	"time"
 
 	"github.com/alicebob/miniredis"
+	"github.com/knadh/otpgateway/models"
 	"github.com/stretchr/testify/assert"
 )
 
 var (
 	rStore  Store
 	rdis    *miniredis.Miniredis
-	mockOTP = OTP{
+	mockOTP = models.OTP{
 		Namespace:   "mynamespace",
 		ID:          "myotpid",
 		OTP:         "myotp",

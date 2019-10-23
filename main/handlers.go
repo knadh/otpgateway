@@ -9,7 +9,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi"
 	"github.com/knadh/otpgateway"
@@ -108,15 +110,17 @@ func handleHealthCheck(w http.ResponseWriter, r *http.Request) {
 // and TTL values.
 func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 	var (
-		app         = r.Context().Value("app").(*App)
-		namespace   = r.Context().Value("namespace").(string)
-		id          = chi.URLParam(r, "id")
-		provider    = r.FormValue("provider")
-		channelDesc = r.FormValue("channel_description")
-		addressDesc = r.FormValue("address_description")
-		extra       = []byte(r.FormValue("extra"))
-		to          = r.FormValue("to")
-		otpVal      = r.FormValue("otp")
+		app            = r.Context().Value("app").(*App)
+		namespace      = r.Context().Value("namespace").(string)
+		id             = chi.URLParam(r, "id")
+		provider       = r.FormValue("provider")
+		channelDesc    = r.FormValue("channel_description")
+		addressDesc    = r.FormValue("address_description")
+		rawTTL         = r.FormValue("ttl")
+		rawMaxAttempts = r.FormValue("max_attempts")
+		extra          = []byte(r.FormValue("extra"))
+		to             = r.FormValue("to")
+		otpVal         = r.FormValue("otp")
 	)
 
 	// Get the provider.
@@ -135,6 +139,29 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 				http.StatusBadRequest, nil)
 			return
 		}
+	}
+
+	// Validate optional TTL in seconds.
+	ttl := app.otpTTL
+	if rawTTL != "" {
+		v, err := strconv.Atoi(rawTTL)
+		if err != nil || v < 1 {
+			sendErrorResponse(w, "invalid `ttl` value",
+				http.StatusBadRequest, nil)
+			return
+		}
+		ttl = time.Second * time.Duration(v)
+	}
+
+	maxAttempts := app.otpMaxAttempts
+	if rawMaxAttempts != "" {
+		v, err := strconv.Atoi(rawMaxAttempts)
+		if err != nil || v < 1 {
+			sendErrorResponse(w, "invalid `max_attempts` value",
+				http.StatusBadRequest, nil)
+			return
+		}
+		maxAttempts = v
 	}
 
 	// If there's extra data, make sure it's JSON.
@@ -188,7 +215,7 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 				otp.TTL.Seconds()),
 			http.StatusTooManyRequests, otpErrResp{
 				Attempts:    otp.Attempts,
-				MaxAttempts: app.otpMaxAttempts,
+				MaxAttempts: otp.MaxAttempts,
 				TTL:         otp.TTL.Seconds(),
 			})
 		return
@@ -202,8 +229,8 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 		AddressDesc: addressDesc,
 		Extra:       []byte(extra),
 		Provider:    provider,
-		TTL:         app.otpTTL,
-		MaxAttempts: app.otpMaxAttempts,
+		TTL:         ttl,
+		MaxAttempts: maxAttempts,
 	})
 	if err != nil {
 		app.logger.Printf("error setting OTP: %v", err)
@@ -261,10 +288,11 @@ func handleCheckOTPStatus(w http.ResponseWriter, r *http.Request) {
 // handleVerifyOTP checks the user input against a stored OTP.
 func handleVerifyOTP(w http.ResponseWriter, r *http.Request) {
 	var (
-		app       = r.Context().Value("app").(*App)
-		namespace = r.Context().Value("namespace").(string)
-		id        = chi.URLParam(r, "id")
-		otpVal    = r.FormValue("otp")
+		app           = r.Context().Value("app").(*App)
+		namespace     = r.Context().Value("namespace").(string)
+		id            = chi.URLParam(r, "id")
+		otpVal        = r.FormValue("otp")
+		skipDelete, _ = strconv.ParseBool(r.FormValue("skip_delete"))
 	)
 
 	if len(id) < 6 {
@@ -276,7 +304,7 @@ func handleVerifyOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	out, err := verifyOTP(namespace, id, otpVal, app)
+	out, err := verifyOTP(namespace, id, otpVal, !skipDelete, app)
 	if err != nil {
 		code := http.StatusBadRequest
 		if err == otpgateway.ErrNotExist {
@@ -315,7 +343,7 @@ func handleOTPView(w http.ResponseWriter, r *http.Request) {
 		out, otpErr = app.store.Check(namespace, id, true)
 	} else {
 		// Validate the attempt.
-		out, otpErr = verifyOTP(namespace, id, otp, app)
+		out, otpErr = verifyOTP(namespace, id, otp, false, app)
 	}
 	if otpErr == otpgateway.ErrNotExist {
 		app.tpl.ExecuteTemplate(w, "message", tpl{App: app,
@@ -466,7 +494,7 @@ func handleAddressView(w http.ResponseWriter, r *http.Request) {
 }
 
 // verifyOTP validates an OTP against user input.
-func verifyOTP(namespace, id, otp string, app *App) (models.OTP, error) {
+func verifyOTP(namespace, id, otp string, deleteOnVerify bool, app *App) (models.OTP, error) {
 	// Check the OTP.
 	out, err := app.store.Check(namespace, id, true)
 	if err != nil {
@@ -488,6 +516,11 @@ func verifyOTP(namespace, id, otp string, app *App) (models.OTP, error) {
 	// There was an error.
 	if errMsg != "" {
 		return out, errors.New(errMsg)
+	}
+
+	// Delete the OTP?
+	if deleteOnVerify {
+		app.store.Delete(namespace, id)
 	}
 
 	app.store.Close(namespace, id)

@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"html/template"
 	"io/ioutil"
 	"log"
@@ -18,6 +17,7 @@ import (
 	"github.com/alicebob/miniredis"
 	"github.com/go-chi/chi"
 	"github.com/knadh/otpgateway"
+	"github.com/knadh/otpgateway/models"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -57,7 +57,7 @@ func (d *dummyProv) ValidateAddress(to string) error {
 }
 
 // Push pushes an e-mail to the SMTP server.
-func (d *dummyProv) Push(toAddr string, subject string, m []byte) error {
+func (d *dummyProv) Push(to models.OTP, subject string, m []byte) error {
 	return nil
 }
 
@@ -114,7 +114,7 @@ func init() {
 			},
 		},
 		otpTTL:         10 * time.Second,
-		otpMaxAttempts: 4,
+		otpMaxAttempts: 10,
 		store: otpgateway.NewRedisStore(otpgateway.RedisConf{
 			Host: rd.Host(),
 			Port: port,
@@ -217,10 +217,59 @@ func TestCheckOTP(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, r.StatusCode, "non 400 response for bad otp check")
 	assert.Equal(t, 2, data.Attempts, "attempts didn't increase")
 
-	// Good OTP.
+	// Good OTP. skip_delete so that it's not deleted.
 	cp.Set("otp", dummyOTP)
+	cp.Set("skip_delete", "true")
 	r = testRequest(t, http.MethodPost, "/api/otp/"+dummyOTPID, cp, &data)
 	assert.Equal(t, http.StatusOK, r.StatusCode, "good OTP failed")
+
+	// Check it again. Shouldn't been deleted.
+	cp.Set("skip_delete", "false")
+	r = testRequest(t, http.MethodPost, "/api/otp/"+dummyOTPID, cp, &data)
+	assert.Equal(t, http.StatusOK, r.StatusCode, "good OTP failed")
+
+	// Check it again. Should be deleted.
+	r = testRequest(t, http.MethodPost, "/api/otp/"+dummyOTPID, cp, &data)
+	assert.NotEqual(t, http.StatusOK, r.StatusCode, "OTP didn't get deleted on verification")
+}
+
+func TestCheckOTPAttempts(t *testing.T) {
+	rdis.FlushDB()
+	var (
+		data = &otpResp{}
+		out  = httpResp{
+			Data: data,
+		}
+		p = url.Values{}
+	)
+	p.Set("id", dummyOTPID)
+	p.Set("otp", dummyOTP)
+	p.Set("max_attempts", "5")
+	p.Set("to", dummyToAddress)
+	p.Set("provider", dummyProvider)
+
+	// Register OTP.
+	r := testRequest(t, http.MethodPut, "/api/otp/"+dummyOTPID, p, &out)
+	assert.Equal(t, http.StatusOK, r.StatusCode, "otp registration failed")
+
+	cp := url.Values{}
+	cp.Set("otp", dummyOTP)
+	cp.Set("skip_delete", "true")
+
+	// Good otp check.
+	r = testRequest(t, http.MethodPost, "/api/otp/"+dummyOTPID, cp, &data)
+	assert.Equal(t, http.StatusOK, r.StatusCode, "good OTP failed")
+
+	// Exceed bad attempts.
+	cp.Set("otp", "123999")
+	for i := 0; i < 10; i++ {
+		r = testRequest(t, http.MethodPost, "/api/otp/"+dummyOTPID, cp, &data)
+		assert.NotEqual(t, http.StatusOK, r.StatusCode, "bad OTP passed")
+	}
+
+	// Rate limited.
+	cp.Set("skip_delete", "true")
+	assert.Equal(t, http.StatusTooManyRequests, r.StatusCode, "bad OTPs didn't get rate limited")
 }
 
 func testRequest(t *testing.T, method, path string, p url.Values, out interface{}) *http.Response {
@@ -247,7 +296,6 @@ func testRequest(t *testing.T, method, path string, p url.Values, out interface{
 	}
 	defer resp.Body.Close()
 
-	fmt.Println(len(respBody), method, path, p)
 	if err := json.Unmarshal(respBody, out); err != nil {
 		t.Fatal(err)
 	}

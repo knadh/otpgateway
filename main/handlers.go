@@ -380,7 +380,7 @@ func handleOTPView(w http.ResponseWriter, r *http.Request) {
 			Closed: true,
 			Title:  fmt.Sprintf("%s verified", pro.ChannelName()),
 			Description: fmt.Sprintf(
-				`You %s is now verified. You can close this page now.`,
+				`Your %s is now verified. You can close this page now.`,
 				pro.ChannelName()),
 		})
 		return
@@ -536,7 +536,7 @@ func wrap(app *App, next http.HandlerFunc) http.HandlerFunc {
 	})
 }
 
-// sendErrorResponse sends a JSON envelope to the HTTP response.
+// sendResponse sends a JSON envelope to the HTTP response.
 func sendResponse(w http.ResponseWriter, data interface{}) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	out, err := json.Marshal(httpResp{Status: "success", Data: data})

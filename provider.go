@@ -2,7 +2,7 @@ package otpgateway
 
 import "github.com/knadh/otpgateway/models"
 
-// ProviderConf represents the common confoguration types for a Provider.
+// ProviderConf represents the common configuration types for a Provider.
 type ProviderConf struct {
 	Template string `mapstructure:"template"`
 	Subject  string `mapstructure:"subject"`

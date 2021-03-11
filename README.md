@@ -4,9 +4,9 @@
 
 OTP (One Time Password) Gateway is a standalone web app that provides a central gateway to verify user addresses such as e-mails and phone numbers or get a 2FA confirmations from thse addresses. An e-mail / SMTP verification provider is bundled and it is easy to write custom providers as Go plugins, for instance a plugin that uses Twilio to send out verification codes to phone numbers as text messages.
 
-- Use the built in web UI to easily integrate with existing applications
-- Use the HTTP/JSON APIs to build your own UI
-- Basic multi-tenancy with namespace+secret auth for seggregating
+- Use the built in web UI to easily integrate with existing applications.
+- Use the HTTP/JSON APIs to build your own UI.
+- Basic multi-tenancy with namespace+secret auth for seggregating applications.
 
 ![address](https://user-images.githubusercontent.com/547147/52076261-501e1300-25b4-11e9-8641-2189d0e4afb7.png)
 ![otp](https://user-images.githubusercontent.com/547147/51735115-7d4a5d00-20ac-11e9-8a86-3985665a7820.png)
@@ -154,7 +154,7 @@ or an error such as
 
 # Javascript plugin
 
-The gateway comes with a Javascript plugin that enables easy integration of the verification flow into existing application. Once a server side call to generate an OTP is made and a namespace and id are obtained, calling `OTPGateway()` opens the verification UI in a modal popup, and once the user finishes the verification, gives you a callback.
+The gateway comes with a Javascript plugin that enables easy integration of the verification flow into existing applications. Once a server side call to generate an OTP is made and a namespace and id are obtained, calling `OTPGateway()` opens the verification UI in a modal popup, and once the user finishes the verification, you get a JS callback.
 
 ```html
 <!-- The id #otpgateway-script is required for the script to work //-->

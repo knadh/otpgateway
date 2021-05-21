@@ -15,11 +15,11 @@ before:
   hooks:
   - make build
 
-archive:
-  format: tar.gz
-  files:
-    - static/smtp.tpl
-    - config.toml.sample
-    - smtp.prov
-    - README.md
-    - LICENSE
+archives:
+  - format: tar.gz
+    files:
+      - static/smtp.tpl
+      - config.toml.sample
+      - smtp.prov
+      - README.md
+      - LICENSE

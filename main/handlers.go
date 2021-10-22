@@ -380,7 +380,7 @@ func handleOTPView(w http.ResponseWriter, r *http.Request) {
 			Closed: true,
 			Title:  fmt.Sprintf("%s verified", pro.ChannelName()),
 			Description: fmt.Sprintf(
-				`Your %s is now verified. You can close this page now.`,
+				`Your %s is verified. This page can be closed now.`,
 				pro.ChannelName()),
 		})
 		return
@@ -510,7 +510,7 @@ func verifyOTP(namespace, id, otp string, deleteOnVerify bool, app *App) (models
 		errMsg = fmt.Sprintf("Too many attempts. Please retry after %0.f seconds.",
 			out.TTL.Seconds())
 	} else if out.OTP != otp {
-		errMsg = "OTP does not match"
+		errMsg = "Incorrect OTP"
 	}
 
 	// There was an error.

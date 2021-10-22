@@ -2,7 +2,7 @@
 
 # OTP Gateway
 
-OTP (One Time Password) Gateway is a standalone web app that provides a central gateway to verify user addresses such as e-mails and phone numbers or get a 2FA confirmations from these addresses. An e-mail / SMTP verification provider is bundled and it is easy to write custom providers as Go plugins, for instance a plugin that uses Twilio to send out verification codes to phone numbers as text messages.
+OTP (One Time Password) Gateway is a standalone web server that provides a central gateway to verify user addresses such as e-mails and phone numbers, and to send 2FA confirmations to such addresses. An e-mail / SMTP verification provider is bundled. It is easy to write custom providers as Go plugins (like a Twilio plugin to send out verification codes via SMS).
 
 - Use the built in web UI to easily integrate with existing applications.
 - Use the HTTP/JSON APIs to build your own UI.
@@ -14,18 +14,25 @@ OTP (One Time Password) Gateway is a standalone web app that provides a central 
 
 ## How does it work?
 
-The application is agnostic of the address and the OTP or verification code involved. These are handled by provider plugins. Addresses are strings, for example, e-mail IDs, phone numbers, bank account numbers etc., and so are OTPs, for instance, 6 digit codes sent as SMSes or a penny value dropped to a bank account. The gateway pushes the OTP value to the user's target address and the user then has to view the OTP and enter it on the gateway's web view to complete the verification.
+The application is agnostic of the user's "address" and the OTP / verification codes. These are handled by provider plugins.
+
+- Addresses are strings, for example, e-mail IDs, phone numbers, bank account numbers etc.
+- OTPs are also just strings, for instance, 6 digit codes sent as SMSes or a penny value dropped to a bank account.
+
+The gateway sends the OTP value to the user's address using a provider and the user then has to read the OTP and enter it on the gateway's web view to complete the verification.
 
 ## Providers
 
-Providers are written as [Go plugins](https://golang.org/pkg/plugin/) that can be dynamically loaded into the gateway. An SMTP provider is bundled that enables e-mail address verifications by sending an OTP / verification link to user's e-mails. Refer to `providers/smtp/smtp.go`. To write a custom provider, copy the `smtp` plugin and change the methods to conform to the `otpgateway.Provider` interface and compile it as a go plugin (see the `Makefile`).
+Providers are [Go plugins](https://golang.org/pkg/plugin/) that can be dynamically loaded into the gateway. An SMTP provider is bundled that enables e-mail address verifications by sending an OTP / verification link to user's e-mails. Refer to `providers/smtp/smtp.go`. To write a custom provider, copy the `smtp` plugin and change the methods to conform to the `otpgateway.Provider` interface and compile it as a go plugin (see the `Makefile`).
 
 - solsms   - SMS provider for Solutions Infini (Indian gateway).
 - pinpoint - SMS provider by AWS.
 
 # Usage
 
-Download the latest release from the [releases page](https://github.com/knadh/otpgateway/releases) or clone this repository and run `make deps && make build`. OTP Gateway requires a Redis installation.
+Download the latest release from the [releases page](https://github.com/knadh/otpgateway/releases). Note that Go plugins require cgo, the libc version linked in the binaries may be incompatible with your system.
+
+The best approach is to clone this repository and run `make deps && make build`. To run, OTP Gateway requires a Redis connection.
 
 - Copy config.toml.sample to config.toml and edit the configuration
 - Run `./otpgateway --prov smtp.prov`

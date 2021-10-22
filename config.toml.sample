@@ -30,6 +30,10 @@ port = "6379"
 user = ""
 password = ""
 
+# If this key is set, check|close events will be published to the key
+# using Redis PubSub (try watching with PSUBSCRIBE *).
+publish_key = ""
+
 [provider.solsms]
 subject = "Verification"
 template = "static/sms.txt"

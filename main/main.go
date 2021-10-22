@@ -245,7 +245,7 @@ func main() {
 
 	// Load the store.
 	var rc otpgateway.RedisConf
-	ko.Unmarshal("store.redis", &rc)
+	ko.UnmarshalWithConf("store.redis", &rc, koanf.UnmarshalConf{Tag: "json"})
 	app.store = otpgateway.NewRedisStore(rc)
 
 	// Compile static templates.

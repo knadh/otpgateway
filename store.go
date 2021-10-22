@@ -1,6 +1,7 @@
 package otpgateway
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -39,20 +40,32 @@ type Store interface {
 
 // redisStore implements a  Redis Store.
 type redisStore struct {
-	pool      *redis.Pool
-	keyPrefix string
+	pool *redis.Pool
+	conf RedisConf
 }
 
 // RedisConf contains Redis configuration fields.
 type RedisConf struct {
-	Host      string        `mapstructure:"host"`
-	Port      int           `mapstructure:"port"`
-	Username  string        `mapstructure:"username"`
-	Password  string        `mapstructure:"password"`
-	MaxActive int           `mapstructure:"max_active"`
-	MaxIdle   int           `mapstructure:"max_idle"`
-	Timeout   time.Duration `mapstructure:"timeout"`
-	KeyPrefix string        `mapstructure:"key_prefix"`
+	Host      string        `json:"host"`
+	Port      int           `json:"port"`
+	Username  string        `json:"username"`
+	Password  string        `json:"password"`
+	MaxActive int           `json:"max_active"`
+	MaxIdle   int           `json:"max_idle"`
+	Timeout   time.Duration `json:"timeout"`
+	KeyPrefix string        `json:"key_prefix"`
+
+	// If this is set, 'check' and 'close' events will be PUBLISHed to
+	// to this Redis key (Redis PubSub).
+	PublishKey string `json:"publish_key"`
+}
+
+type event struct {
+	Type string `json:"type"`
+
+	Namespace string          `json:"namespace"`
+	ID        string          `json:"id"`
+	Data      json.RawMessage `json:"data"`
 }
 
 // NewRedisStore returns a Redis implementation of store.
@@ -78,8 +91,8 @@ func NewRedisStore(c RedisConf) Store {
 		},
 	}
 	return &redisStore{
-		pool:      pool,
-		keyPrefix: c.KeyPrefix,
+		conf: c,
+		pool: pool,
 	}
 }
 
@@ -120,6 +133,19 @@ func (r *redisStore) Check(namespace, id string, counter bool) (models.OTP, erro
 
 	ttl, _ := redis.Int64(resp[1], nil)
 	out.TTL = time.Duration(ttl) * time.Second
+
+	// Publish?
+	if r.conf.PublishKey != "" {
+		b, _ := json.Marshal(out)
+		e, _ := json.Marshal(event{
+			Type:      "check",
+			Namespace: namespace,
+			ID:        id,
+			Data:      json.RawMessage(b),
+		})
+		_, _ = c.Do("PUBLISH", r.conf.PublishKey, e)
+	}
+
 	return out, err
 }
 
@@ -187,6 +213,18 @@ func (r *redisStore) Close(namespace, id string) error {
 	defer c.Close()
 
 	_, err := c.Do("HSET", r.makeKey(namespace, id), "closed", true)
+
+	// Publish?
+	if r.conf.PublishKey != "" {
+		e, _ := json.Marshal(event{
+			Type:      "close",
+			Namespace: namespace,
+			ID:        id,
+			Data:      json.RawMessage([]byte(`null`)),
+		})
+		_, _ = c.Do("PUBLISH", r.conf.PublishKey, e)
+	}
+
 	return err
 }
 
@@ -252,5 +290,5 @@ func (r *redisStore) end(c redis.Conn) ([]interface{}, error) {
 
 // makeKey makes the Redis key for the OTP.
 func (r *redisStore) makeKey(namespace, id string) string {
-	return fmt.Sprintf("%s:%s:%s", r.keyPrefix, namespace, id)
+	return fmt.Sprintf("%s:%s:%s", r.conf.KeyPrefix, namespace, id)
 }

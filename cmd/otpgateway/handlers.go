@@ -63,7 +63,7 @@ type tpl struct {
 	Closed        bool
 	Message       string
 
-	App *App
+	App constants
 }
 
 type pushTpl struct {
@@ -142,7 +142,7 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate optional TTL in seconds.
-	ttl := app.OtpTTL
+	ttl := app.constants.OtpTTL
 	if rawTTL != "" {
 		v, err := strconv.Atoi(rawTTL)
 		if err != nil || v < 1 {
@@ -153,7 +153,7 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 		ttl = time.Second * time.Duration(v)
 	}
 
-	maxAttempts := app.otpMaxAttempts
+	maxAttempts := app.constants.otpMaxAttempts
 	if rawMaxAttempts != "" {
 		v, err := strconv.Atoi(rawMaxAttempts)
 		if err != nil || v < 1 {
@@ -240,14 +240,14 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 
 	// Push the OTP out.
 	if to != "" {
-		if err := push(newOTP, app.providerTpls[pro.ID()], pro, app.RootURL); err != nil {
+		if err := push(newOTP, app.providerTpls[pro.ID()], pro, app.constants.RootURL); err != nil {
 			app.log.Printf("error sending OTP: %v", err)
 			sendErrorResponse(w, "error sending OTP", http.StatusInternalServerError, nil)
 			return
 		}
 	}
 
-	out := otpResp{newOTP, getURL(app.RootURL, newOTP, false)}
+	out := otpResp{newOTP, getURL(app.constants.RootURL, newOTP, false)}
 	sendResponse(w, out)
 }
 
@@ -346,7 +346,7 @@ func handleOTPView(w http.ResponseWriter, r *http.Request) {
 		out, otpErr = verifyOTP(namespace, id, otp, false, app)
 	}
 	if otpErr == otpgateway.ErrNotExist {
-		app.tpl.ExecuteTemplate(w, "message", tpl{App: app,
+		app.tpl.ExecuteTemplate(w, "message", tpl{App: app.constants,
 			Title: "Session expired",
 			Description: `Your session has expired.
 					Please re-initiate the verification.`,
@@ -356,7 +356,7 @@ func handleOTPView(w http.ResponseWriter, r *http.Request) {
 
 	// Attempts are maxed out and locked.
 	if isLocked(out) {
-		app.tpl.ExecuteTemplate(w, "message", tpl{App: app,
+		app.tpl.ExecuteTemplate(w, "message", tpl{App: app.constants,
 			Title:       "Too many attempts",
 			Description: fmt.Sprintf("Please retry after %d seconds.", int64(out.TTLSeconds)),
 		})
@@ -366,7 +366,7 @@ func handleOTPView(w http.ResponseWriter, r *http.Request) {
 	// Get the provider.
 	pro, ok := app.providers[out.Provider]
 	if !ok {
-		app.tpl.ExecuteTemplate(w, "message", tpl{App: app,
+		app.tpl.ExecuteTemplate(w, "message", tpl{App: app.constants,
 			Title:       "Internal error",
 			Description: "The provider for this OTP was not found.",
 		})
@@ -375,7 +375,7 @@ func handleOTPView(w http.ResponseWriter, r *http.Request) {
 
 	// OTP's already verified and closed.
 	if out.Closed {
-		app.tpl.ExecuteTemplate(w, "message", tpl{App: app,
+		app.tpl.ExecuteTemplate(w, "message", tpl{App: app.constants,
 			OTP:    out,
 			Closed: true,
 			Title:  fmt.Sprintf("%s verified", pro.ChannelName()),
@@ -397,7 +397,7 @@ func handleOTPView(w http.ResponseWriter, r *http.Request) {
 	// It's a resend request.
 	if action == actResend {
 		msg = "OTP resent"
-		if err := push(out, app.providerTpls[pro.ID()], pro, app.RootURL); err != nil {
+		if err := push(out, app.providerTpls[pro.ID()], pro, app.constants.RootURL); err != nil {
 			app.log.Printf("error sending OTP: %v", err)
 			otpErr = errors.New("error resending the OTP")
 		}
@@ -407,7 +407,7 @@ func handleOTPView(w http.ResponseWriter, r *http.Request) {
 		msg = otpErr.Error()
 	}
 
-	app.tpl.ExecuteTemplate(w, "otp", tpl{App: app,
+	app.tpl.ExecuteTemplate(w, "otp", tpl{App: app.constants,
 		ChannelName: pro.ChannelName(),
 		MaxOTPLen:   pro.MaxOTPLen(),
 		Message:     msg,
@@ -456,14 +456,14 @@ func handleAddressView(w http.ResponseWriter, r *http.Request) {
 	out, err := app.store.Check(namespace, id, false)
 	if err != nil {
 		if err == otpgateway.ErrNotExist {
-			app.tpl.ExecuteTemplate(w, "message", tpl{App: app,
+			app.tpl.ExecuteTemplate(w, "message", tpl{App: app.constants,
 				Title: "Session expired",
 				Description: `Your session has expired.
 					Please re-initiate the verification.`,
 			})
 		} else {
 			app.log.Printf("error checking OTP: %v", err)
-			app.tpl.ExecuteTemplate(w, "message", tpl{App: app,
+			app.tpl.ExecuteTemplate(w, "message", tpl{App: app.constants,
 				Title:       "Internal error",
 				Description: `Please try later.`,
 			})
@@ -480,7 +480,7 @@ func handleAddressView(w http.ResponseWriter, r *http.Request) {
 	// Get the provider.
 	pro, ok := app.providers[out.Provider]
 	if !ok {
-		app.tpl.ExecuteTemplate(w, "message", tpl{App: app,
+		app.tpl.ExecuteTemplate(w, "message", tpl{App: app.constants,
 			Title:       "Internal error",
 			Description: "The provider for this OTP was not found.",
 		})
@@ -496,7 +496,7 @@ func handleAddressView(w http.ResponseWriter, r *http.Request) {
 			msg = err.Error()
 		} else {
 			out.To = to
-			if err := push(out, app.providerTpls[pro.ID()], pro, app.RootURL); err != nil {
+			if err := push(out, app.providerTpls[pro.ID()], pro, app.constants.RootURL); err != nil {
 				app.log.Printf("error sending OTP: %v", err)
 				msg = "error sending OTP"
 			} else {
@@ -506,7 +506,7 @@ func handleAddressView(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	app.tpl.ExecuteTemplate(w, "index", tpl{App: app,
+	app.tpl.ExecuteTemplate(w, "index", tpl{App: app.constants,
 		ChannelName:   pro.ChannelName(),
 		AddressName:   pro.AddressName(),
 		MaxAddressLen: pro.MaxAddressLen(),

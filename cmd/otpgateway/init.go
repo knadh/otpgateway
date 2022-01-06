@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"plugin"
 	"strings"
+	"time"
 
 	"github.com/knadh/koanf/parsers/toml"
 	"github.com/knadh/koanf/providers/env"
@@ -18,6 +19,16 @@ import (
 	"github.com/knadh/stuffbin"
 	flag "github.com/spf13/pflag"
 )
+
+type constants struct {
+	OtpTTL         time.Duration
+	otpMaxAttempts int
+
+	// Exported to templates.
+	RootURL    string
+	LogoURL    string
+	FaviconURL string
+}
 
 func initConfig() {
 	// Register --help handler.

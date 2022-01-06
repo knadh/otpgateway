@@ -28,15 +28,7 @@ type App struct {
 	log          *log.Logger
 	tpl          *template.Template
 	fs           stuffbin.FileSystem
-
-	// Constants
-	OtpTTL         time.Duration
-	otpMaxAttempts int
-
-	// Exported to templates.
-	RootURL    string
-	LogoURL    string
-	FaviconURL string
+	constants    constants
 }
 
 var (
@@ -58,14 +50,17 @@ func main() {
 	}
 
 	app := &App{
-		providers:      provs,
-		log:            logger,
-		OtpTTL:         ko.Duration("app.otp_ttl") * time.Second,
-		otpMaxAttempts: ko.Int("app.otp_max_attempts"),
-		RootURL:        strings.TrimRight(ko.String("app.root_url"), "/"),
-		LogoURL:        ko.String("app.logo_url"),
-		FaviconURL:     ko.String("app.favicon_url"),
-		fs:             initFS(os.Args[0]),
+		providers: provs,
+		log:       logger,
+		fs:        initFS(os.Args[0]),
+
+		constants: constants{
+			OtpTTL:         ko.Duration("app.otp_ttl") * time.Second,
+			otpMaxAttempts: ko.Int("app.otp_max_attempts"),
+			RootURL:        strings.TrimRight(ko.String("app.root_url"), "/"),
+			LogoURL:        ko.String("app.logo_url"),
+			FaviconURL:     ko.String("app.favicon_url"),
+		},
 	}
 
 	// Load provider templates.

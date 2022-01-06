@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -679,10 +680,10 @@ func auth(authMap map[string]string, next http.HandlerFunc) http.HandlerFunc {
 
 		var (
 			namespace = string(pair[0])
-			secret    = string(pair[1])
+			secret    = pair[1]
 		)
-		key, ok := authMap[namespace]
-		if !ok || key != secret {
+		s, ok := authMap[namespace]
+		if !ok || subtle.ConstantTimeCompare([]byte(s), secret) != 1 {
 			sendErrorResponse(w, "invalid API credentials",
 				http.StatusUnauthorized, nil)
 			return

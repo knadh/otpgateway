@@ -272,6 +272,7 @@ func main() {
 	r.Post("/api/otp/{id}", auth(authCreds, wrap(app, handleVerifyOTP)))
 
 	r.Get("/otp/{namespace}/{id}", wrap(app, handleOTPView))
+	r.Get("/otp/{namespace}/{id}/status", wrap(app, handleGetOTPClosed))
 	r.Get("/otp/{namespace}/{id}/address", wrap(app, handleAddressView))
 	r.Post("/otp/{namespace}/{id}/address", wrap(app, handleAddressView))
 	r.Post("/otp/{namespace}/{id}", wrap(app, handleOTPView))

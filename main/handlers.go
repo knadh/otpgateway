@@ -418,6 +418,31 @@ func handleOTPView(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// handleGetOTPClosed returns a true/false denoting whether an OTP is closed or not.
+// It is used by the OTP UI to poll for the OTP status and then self-close.
+func handleGetOTPClosed(w http.ResponseWriter, r *http.Request) {
+	var (
+		app       = r.Context().Value("app").(*App)
+		namespace = chi.URLParam(r, "namespace")
+		id        = chi.URLParam(r, "id")
+	)
+
+	out, err := app.store.Check(namespace, id, false)
+	if err != nil {
+		if err == otpgateway.ErrNotExist {
+			sendErrorResponse(w, "Session expired.", http.StatusBadRequest, nil)
+			return
+		}
+
+		sendErrorResponse(w, "Error checking status.", http.StatusInternalServerError, nil)
+		return
+	}
+
+	sendResponse(w, struct {
+		Closed bool `json:"closed"`
+	}{out.Closed})
+}
+
 // handleAddressView renders the UI for collecting the provider address for
 // verification from the user.
 func handleAddressView(w http.ResponseWriter, r *http.Request) {

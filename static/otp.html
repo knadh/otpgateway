@@ -62,6 +62,24 @@
             document.querySelector(".form").onsubmit = function() {
                 document.querySelector(".form .submit-button").setAttribute("disabled", true);
             };
+
+            // Poll status.
+            var statusTicker = window.setInterval(() => {
+                fetch("/otp/{{ .OTP.Namespace }}/{{ .OTP.ID }}/status").then((r) => {
+                        if (!r.ok) {
+                            window.clearInterval(statusTicker);
+                            return;
+                        }
+                        return r.json();
+                    }).then((data) => {
+                        // If the OTP has been closed, refresh the page to update the status.
+                        if (data.data.closed) {
+                            document.location.reload();
+                        }
+                    }).catch(() => {
+                        window.clearInterval(statusTicker);
+                    });
+            }, 2000);
         })();
     </script>
     {{ template "footer" .}}

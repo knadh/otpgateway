@@ -112,6 +112,7 @@ func initProviders(names []string) (map[string]otpgateway.Provider, error) {
 		}
 		out[p.ID()] = p
 	}
+
 	return out, nil
 }
 
@@ -130,6 +131,7 @@ func initAuth() map[string]string {
 		}
 		out[k["namespace"]] = k["secret"]
 	}
+
 	return out
 }
 
@@ -163,6 +165,7 @@ func initProviderTemplates(providers []string) (map[string]*providerTpl, error) 
 			tpl:     tpl,
 		}
 	}
+
 	return out, nil
 }
 
@@ -183,5 +186,6 @@ func initFS(exe string) stuffbin.FileSystem {
 			log.Fatalf("error reading stuffed binary: %v", err)
 		}
 	}
+
 	return fs
 }

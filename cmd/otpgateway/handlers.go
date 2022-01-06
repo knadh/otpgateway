@@ -153,7 +153,7 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 		ttl = time.Second * time.Duration(v)
 	}
 
-	maxAttempts := app.constants.otpMaxAttempts
+	maxAttempts := app.constants.OtpMaxAttempts
 	if rawMaxAttempts != "" {
 		v, err := strconv.Atoi(rawMaxAttempts)
 		if err != nil || v < 1 {

@@ -32,8 +32,8 @@ type App struct {
 }
 
 var (
-	logger = log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lshortfile)
-	ko     = koanf.New(".")
+	lo = log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lshortfile)
+	ko = koanf.New(".")
 
 	// Version of the build injected at build time.
 	buildString = "unknown"
@@ -44,19 +44,19 @@ func main() {
 
 	provs, err := initProviders(ko.Strings("prov"))
 	if err != nil {
-		logger.Fatal(err)
+		lo.Fatal(err)
 	} else if len(provs) == 0 {
-		logger.Fatal("no providers loaded. Use --provider to load a provider plugin.")
+		lo.Fatal("no providers loaded. Use --provider to load a provider plugin.")
 	}
 
 	app := &App{
 		providers: provs,
-		log:       logger,
+		log:       lo,
 		fs:        initFS(os.Args[0]),
 
 		constants: constants{
 			OtpTTL:         ko.Duration("app.otp_ttl") * time.Second,
-			otpMaxAttempts: ko.Int("app.otp_max_attempts"),
+			OtpMaxAttempts: ko.Int("app.otp_max_attempts"),
 			RootURL:        strings.TrimRight(ko.String("app.root_url"), "/"),
 			LogoURL:        ko.String("app.logo_url"),
 			FaviconURL:     ko.String("app.favicon_url"),
@@ -70,7 +70,7 @@ func main() {
 	}
 	tpls, err := initProviderTemplates(pNames)
 	if err != nil {
-		logger.Fatal(err)
+		lo.Fatal(err)
 	}
 	app.providerTpls = tpls
 
@@ -82,13 +82,13 @@ func main() {
 	// Compile static templates.
 	tpl, err := stuffbin.ParseTemplatesGlob(nil, app.fs, "/static/*.html")
 	if err != nil {
-		logger.Fatalf("error compiling template: %v", err)
+		lo.Fatalf("error compiling template: %v", err)
 	}
 	app.tpl = tpl
 
 	authCreds := initAuth()
 	if len(authCreds) == 0 {
-		logger.Fatal("no auth entries found in config")
+		lo.Fatal("no auth entries found in config")
 	}
 
 	// Register handles.
@@ -119,8 +119,8 @@ func main() {
 		Handler:      r,
 	}
 
-	logger.Printf("starting on %s", srv.Addr)
+	lo.Printf("starting on %s", srv.Addr)
 	if err := srv.ListenAndServe(); err != nil {
-		logger.Fatalf("couldn't start server: %v", err)
+		lo.Fatalf("couldn't start server: %v", err)
 	}
 }

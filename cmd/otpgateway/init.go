@@ -22,7 +22,7 @@ import (
 
 type constants struct {
 	OtpTTL         time.Duration
-	otpMaxAttempts int
+	OtpMaxAttempts int
 
 	// Exported to templates.
 	RootURL    string
@@ -92,7 +92,7 @@ func initProviders(names []string) (map[string]otpgateway.Provider, error) {
 		var cfg otpgateway.ProviderConf
 		ko.Unmarshal("provider."+id, &cfg)
 		if cfg.Config == "" {
-			logger.Printf("WARNING: No config 'provider.%s' for '%s' in config", id, id)
+			lo.Printf("WARNING: No config 'provider.%s' for '%s' in config", id, id)
 		}
 
 		// Initialize the plugin.
@@ -100,7 +100,7 @@ func initProviders(names []string) (map[string]otpgateway.Provider, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error initializing provider plugin '%s': %v", id, err)
 		}
-		logger.Printf("loaded provider plugin '%s' from %s", id, fName)
+		lo.Printf("loaded provider plugin '%s' from %s", id, fName)
 
 		p, ok := provider.(otpgateway.Provider)
 		if !ok {
@@ -126,7 +126,7 @@ func initAuth() map[string]string {
 		)
 
 		if namespace == "" || secret == "" {
-			logger.Fatalf("namespace or secret keys not found in auth.%s", a)
+			lo.Fatalf("namespace or secret keys not found in auth.%s", a)
 		}
 		out[k["namespace"]] = k["secret"]
 	}

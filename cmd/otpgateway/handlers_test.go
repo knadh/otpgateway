@@ -105,7 +105,7 @@ func init() {
 
 	// Dummy app.
 	app := &App{
-		log:       logger,
+		log:       lo,
 		providers: map[string]otpgateway.Provider{dummyProvider: &dummyProv{}},
 		providerTpls: map[string]*providerTpl{
 			dummyProvider: &providerTpl{
@@ -113,8 +113,10 @@ func init() {
 				tpl:     tpl,
 			},
 		},
-		OtpTTL:         10 * time.Second,
-		otpMaxAttempts: 10,
+		constants: constants{
+			OtpTTL:         10 * time.Second,
+			OtpMaxAttempts: 10,
+		},
 		store: otpgateway.NewRedisStore(otpgateway.RedisConf{
 			Host: rd.Host(),
 			Port: port,

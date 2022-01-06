@@ -50,6 +50,7 @@ type RedisConf struct {
 	Port      int           `json:"port"`
 	Username  string        `json:"username"`
 	Password  string        `json:"password"`
+	DB        int           `json:"db"`
 	MaxActive int           `json:"max_active"`
 	MaxIdle   int           `json:"max_idle"`
 	Timeout   time.Duration `json:"timeout"`
@@ -85,6 +86,7 @@ func NewRedisStore(c RedisConf) Store {
 				redis.DialConnectTimeout(c.Timeout),
 				redis.DialReadTimeout(c.Timeout),
 				redis.DialWriteTimeout(c.Timeout),
+				redis.DialDatabase(c.DB),
 			)
 
 			return c, err

@@ -1,7 +1,7 @@
 # .goreleaser.yml
 builds:
   - binary: otpgateway
-    main: ./main
+    main: ./cmd/otpgateway
     goos:
       - darwin
       - linux

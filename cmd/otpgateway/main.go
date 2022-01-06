@@ -112,10 +112,15 @@ func main() {
 	})
 
 	// HTTP Server.
+	timeout := ko.Duration("app.server_timeout")
+	if timeout.Seconds() < 1 {
+		timeout = time.Second * 5
+	}
+
 	srv := &http.Server{
 		Addr:         ko.String("app.address"),
-		ReadTimeout:  ko.Duration("ap.timeout") * time.Second,
-		WriteTimeout: ko.Duration("ap.timeout") * time.Second,
+		ReadTimeout:  timeout,
+		WriteTimeout: timeout,
 		Handler:      r,
 	}
 

@@ -1,5 +1,6 @@
 [app]
 address = "0.0.0.0:9000"
+server_timeout = "5s"
 
 # TTL / Expiry for the OTP in seconds.
 otp_ttl = 300

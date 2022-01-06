@@ -24,7 +24,7 @@ build:
 	go build -ldflags="-s -w" -buildmode=plugin -o ${PINPOINT_BIN} providers/pinpoint/pinpoint.go
 
 	# Compile the main application.
-	go build -o ${BIN} -ldflags="-s -w -X 'main.buildString=${BUILDSTR}'" main/*.go
+	go build -o ${BIN} -ldflags="-s -w -X 'main.buildString=${BUILDSTR}'" cmd/otpgateway/*.go
 	stuffbin -a stuff -in ${BIN} -out ${BIN} ${STATIC}
 
 .PHONY: deps

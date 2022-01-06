@@ -262,6 +262,9 @@ func main() {
 
 	// Register handles.
 	r := chi.NewRouter()
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("otpgateway"))
+	})
 	r.Get("/api/providers", auth(authCreds, wrap(app, handleGetProviders)))
 	r.Get("/api/health", wrap(app, handleHealthCheck))
 	r.Put("/api/otp/{id}", auth(authCreds, wrap(app, handleSetOTP)))

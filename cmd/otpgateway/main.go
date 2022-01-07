@@ -10,9 +10,9 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/knadh/koanf"
-	"github.com/knadh/otpgateway/internal/store"
-	"github.com/knadh/otpgateway/internal/store/redis"
-	"github.com/knadh/otpgateway/internal/models"
+	"github.com/knadh/otpgateway/v3/internal/store"
+	"github.com/knadh/otpgateway/v3/internal/store/redis"
+	"github.com/knadh/otpgateway/v3/internal/models"
 	"github.com/knadh/stuffbin"
 )
 

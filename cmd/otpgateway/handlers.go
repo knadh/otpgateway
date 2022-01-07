@@ -15,8 +15,8 @@ import (
 	"time"
 
 	"github.com/go-chi/chi"
-	"github.com/knadh/otpgateway/internal/store"
-	"github.com/knadh/otpgateway/internal/models"
+	"github.com/knadh/otpgateway/v3/internal/store"
+	"github.com/knadh/otpgateway/v3/internal/models"
 )
 
 const (

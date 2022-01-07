@@ -6,8 +6,8 @@ import (
 	"time"
 
 	redigo "github.com/gomodule/redigo/redis"
-	"github.com/knadh/otpgateway/internal/store"
-	"github.com/knadh/otpgateway/internal/models"
+	"github.com/knadh/otpgateway/v3/internal/store"
+	"github.com/knadh/otpgateway/v3/internal/models"
 )
 
 // Redis implements a  Redis Store.

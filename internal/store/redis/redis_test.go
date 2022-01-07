@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/alicebob/miniredis"
-	"github.com/knadh/otpgateway/internal/store"
-	"github.com/knadh/otpgateway/internal/models"
+	"github.com/knadh/otpgateway/v3/internal/store"
+	"github.com/knadh/otpgateway/v3/internal/models"
 	"github.com/stretchr/testify/assert"
 )
 

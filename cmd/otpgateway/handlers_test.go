@@ -16,9 +16,8 @@ import (
 
 	"github.com/alicebob/miniredis"
 	"github.com/go-chi/chi"
-	"github.com/knadh/otpgateway/internal/store/redis"
-	"github.com/knadh/otpgateway/internal/models"
-	"github.com/knadh/otpgateway/provider"
+	"github.com/knadh/otpgateway/v3/internal/models"
+	"github.com/knadh/otpgateway/v3/internal/store/redis"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -107,7 +106,7 @@ func init() {
 	// Dummy app.
 	app := &App{
 		log:       lo,
-		providers: map[string]provider.Provider{dummyProvider: &dummyProv{}},
+		providers: map[string]models.Provider{dummyProvider: &dummyProv{}},
 		providerTpls: map[string]*providerTpl{
 			dummyProvider: &providerTpl{
 				subject: tpl,

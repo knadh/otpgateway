@@ -1,4 +1,4 @@
-module github.com/knadh/otpgateway
+module github.com/knadh/otpgateway/v3
 
 go 1.12
 

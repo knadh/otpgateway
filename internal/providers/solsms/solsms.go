@@ -10,7 +10,7 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/knadh/otpgateway/internal/models"
+	"github.com/knadh/otpgateway/v3/internal/models"
 )
 
 const (

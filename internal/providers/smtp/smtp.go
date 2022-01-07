@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/jordan-wright/email"
-	"github.com/knadh/otpgateway/internal/models"
+	"github.com/knadh/otpgateway/v3/internal/models"
 )
 
 const (

@@ -1,51 +1,23 @@
-package otpgateway
+package redis
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"time"
 
-	"github.com/gomodule/redigo/redis"
-	"github.com/knadh/otpgateway/models"
+	redigo "github.com/gomodule/redigo/redis"
+	"github.com/knadh/otpgateway/internal/store"
+	"github.com/knadh/otpgateway/internal/models"
 )
 
-// ErrNotExist is thrown when an OTP (requested by namespace / ID)
-// does not exist.
-var ErrNotExist = errors.New("the OTP does not exist")
-
-// Store represents a storage backend where OTP data is stored.
-type Store interface {
-	// Set sets an OTP against an ID. Every Set() increments the attempts
-	// count against the ID that was initially set.
-	Set(namespace, id string, otp models.OTP) (models.OTP, error)
-
-	// SetAddress sets (updates) the address on an existing OTP.
-	SetAddress(namespace, id, address string) error
-
-	// Check checks the attempt count and TTL duration against an ID.
-	// Passing counter=true increments the attempt counter.
-	Check(namespace, id string, counter bool) (models.OTP, error)
-
-	// Close closes an OTP and marks it as done (verified).
-	// After this, the OTP has to expire after a TTL or be deleted.
-	Close(namespace, id string) error
-
-	// Delete deletes the OTP saved against a given ID.
-	Delete(namespace, id string) error
-
-	// Ping checks if store is reachable
-	Ping() error
+// Redis implements a  Redis Store.
+type Redis struct {
+	pool *redigo.Pool
+	conf Conf
 }
 
-// redisStore implements a  Redis Store.
-type redisStore struct {
-	pool *redis.Pool
-	conf RedisConf
-}
-
-// RedisConf contains Redis configuration fields.
-type RedisConf struct {
+// Conf contains Redis configuration fields.
+type Conf struct {
 	Host      string        `json:"host"`
 	Port      int           `json:"port"`
 	Username  string        `json:"username"`
@@ -62,44 +34,43 @@ type RedisConf struct {
 }
 
 type event struct {
-	Type string `json:"type"`
-
+	Type      string          `json:"type"`
 	Namespace string          `json:"namespace"`
 	ID        string          `json:"id"`
 	Data      json.RawMessage `json:"data"`
 }
 
-// NewRedisStore returns a Redis implementation of store.
-func NewRedisStore(c RedisConf) Store {
+// New returns a Redis implementation of store.
+func New(c Conf) *Redis {
 	if c.KeyPrefix == "" {
 		c.KeyPrefix = "OTP"
 	}
-	pool := &redis.Pool{
+	pool := &redigo.Pool{
 		Wait:      true,
 		MaxActive: c.MaxActive,
 		MaxIdle:   c.MaxIdle,
-		Dial: func() (redis.Conn, error) {
-			c, err := redis.Dial(
+		Dial: func() (redigo.Conn, error) {
+			c, err := redigo.Dial(
 				"tcp",
 				fmt.Sprintf("%s:%d", c.Host, c.Port),
-				redis.DialPassword(c.Password),
-				redis.DialConnectTimeout(c.Timeout),
-				redis.DialReadTimeout(c.Timeout),
-				redis.DialWriteTimeout(c.Timeout),
-				redis.DialDatabase(c.DB),
+				redigo.DialPassword(c.Password),
+				redigo.DialConnectTimeout(c.Timeout),
+				redigo.DialReadTimeout(c.Timeout),
+				redigo.DialWriteTimeout(c.Timeout),
+				redigo.DialDatabase(c.DB),
 			)
 
 			return c, err
 		},
 	}
-	return &redisStore{
+	return &Redis{
 		conf: c,
 		pool: pool,
 	}
 }
 
 // Ping checks if Redis server is reachable
-func (r *redisStore) Ping() error {
+func (r *Redis) Ping() error {
 	c := r.pool.Get()
 	defer c.Close()
 	_, err := c.Do("PING") // Test redis connection
@@ -108,7 +79,7 @@ func (r *redisStore) Ping() error {
 
 // Check checks the attempt count and TTL duration against an ID.
 // Passing count=true increments the attempt counter.
-func (r *redisStore) Check(namespace, id string, counter bool) (models.OTP, error) {
+func (r *Redis) Check(namespace, id string, counter bool) (models.OTP, error) {
 	c := r.pool.Get()
 	defer c.Close()
 
@@ -130,10 +101,10 @@ func (r *redisStore) Check(namespace, id string, counter bool) (models.OTP, erro
 		return out, err
 	}
 
-	attempts, _ := redis.Int(resp[0], nil)
+	attempts, _ := redigo.Int(resp[0], nil)
 	out.Attempts = attempts
 
-	ttl, _ := redis.Int64(resp[1], nil)
+	ttl, _ := redigo.Int64(resp[1], nil)
 	out.TTL = time.Duration(ttl) * time.Second
 
 	// Publish?
@@ -152,7 +123,7 @@ func (r *redisStore) Check(namespace, id string, counter bool) (models.OTP, erro
 }
 
 // Set sets an OTP in the store.
-func (r *redisStore) Set(namespace, id string, otp models.OTP) (models.OTP, error) {
+func (r *Redis) Set(namespace, id string, otp models.OTP) (models.OTP, error) {
 	c := r.pool.Get()
 	defer c.Close()
 
@@ -182,7 +153,7 @@ func (r *redisStore) Set(namespace, id string, otp models.OTP) (models.OTP, erro
 	if err != nil {
 		return otp, err
 	}
-	attempts, err := redis.Int(resp[1], nil)
+	attempts, err := redigo.Int(resp[1], nil)
 	if err != nil {
 		return otp, err
 	}
@@ -194,7 +165,7 @@ func (r *redisStore) Set(namespace, id string, otp models.OTP) (models.OTP, erro
 }
 
 // SetAddress sets (updates) the address on an existing OTP.
-func (r *redisStore) SetAddress(namespace, id, address string) error {
+func (r *Redis) SetAddress(namespace, id, address string) error {
 	c := r.pool.Get()
 	defer c.Close()
 
@@ -210,7 +181,7 @@ func (r *redisStore) SetAddress(namespace, id, address string) error {
 
 // Close closes an OTP and marks it as done (verified).
 // After this, the OTP has to expire after a TTL or be deleted.
-func (r *redisStore) Close(namespace, id string) error {
+func (r *Redis) Close(namespace, id string) error {
 	c := r.pool.Get()
 	defer c.Close()
 
@@ -231,7 +202,7 @@ func (r *redisStore) Close(namespace, id string) error {
 }
 
 // Delete deletes the OTP saved against a given ID.
-func (r *redisStore) Delete(namespace, id string) error {
+func (r *Redis) Delete(namespace, id string) error {
 	c := r.pool.Get()
 	defer c.Close()
 
@@ -240,7 +211,7 @@ func (r *redisStore) Delete(namespace, id string) error {
 }
 
 // get begins a transaction.
-func (r *redisStore) get(namespace, id string, c redis.Conn) (models.OTP, error) {
+func (r *Redis) get(namespace, id string, c redigo.Conn) (models.OTP, error) {
 	var (
 		key = r.makeKey(namespace, id)
 		out = models.OTP{
@@ -249,20 +220,20 @@ func (r *redisStore) get(namespace, id string, c redis.Conn) (models.OTP, error)
 		}
 	)
 
-	resp, err := redis.Values(c.Do("HGETALL", key))
+	resp, err := redigo.Values(c.Do("HGETALL", key))
 	if err != nil {
 		return out, err
 	}
-	if err := redis.ScanStruct(resp, &out); err != nil {
+	if err := redigo.ScanStruct(resp, &out); err != nil {
 		return out, err
 	}
 
 	// Doesn't exist?
 	if out.OTP == "" {
-		return out, ErrNotExist
+		return out, store.ErrNotExist
 	}
 
-	ttl, err := redis.Int64(c.Do("TTL", key))
+	ttl, err := redigo.Int64(c.Do("TTL", key))
 	if err != nil {
 		return out, err
 	}
@@ -273,17 +244,17 @@ func (r *redisStore) get(namespace, id string, c redis.Conn) (models.OTP, error)
 }
 
 // begin begins a transaction.
-func (r *redisStore) begin(c redis.Conn) error {
+func (r *Redis) begin(c redigo.Conn) error {
 	return c.Send("MULTI")
 }
 
 // end begins a transaction.
-func (r *redisStore) end(c redis.Conn) ([]interface{}, error) {
-	rep, err := redis.Values(c.Do("EXEC"))
+func (r *Redis) end(c redigo.Conn) ([]interface{}, error) {
+	rep, err := redigo.Values(c.Do("EXEC"))
 
 	// Check if there are any errors.
 	for _, r := range rep {
-		if v, ok := r.(redis.Error); ok {
+		if v, ok := r.(redigo.Error); ok {
 			return rep, v
 		}
 	}
@@ -291,6 +262,6 @@ func (r *redisStore) end(c redis.Conn) ([]interface{}, error) {
 }
 
 // makeKey makes the Redis key for the OTP.
-func (r *redisStore) makeKey(namespace, id string) string {
+func (r *Redis) makeKey(namespace, id string) string {
 	return fmt.Sprintf("%s:%s:%s", r.conf.KeyPrefix, namespace, id)
 }

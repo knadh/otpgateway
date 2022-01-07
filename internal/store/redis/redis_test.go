@@ -1,4 +1,4 @@
-package otpgateway
+package redis
 
 import (
 	"log"
@@ -7,12 +7,13 @@ import (
 	"time"
 
 	"github.com/alicebob/miniredis"
-	"github.com/knadh/otpgateway/models"
+	"github.com/knadh/otpgateway/internal/store"
+	"github.com/knadh/otpgateway/internal/models"
 	"github.com/stretchr/testify/assert"
 )
 
 var (
-	rStore  Store
+	rStore  *Redis
 	rdis    *miniredis.Miniredis
 	mockOTP = models.OTP{
 		Namespace:   "mynamespace",
@@ -36,7 +37,7 @@ func init() {
 	rdis = rd
 
 	port, _ := strconv.Atoi(rd.Port())
-	rStore = NewRedisStore(RedisConf{
+	rStore = New(Conf{
 		Host: rd.Host(),
 		Port: port,
 	})
@@ -100,5 +101,5 @@ func TestStoreDelete(t *testing.T) {
 	assert.Equal(t, nil, err, "error deleting OTP")
 
 	_, err = rStore.Check(mockOTP.Namespace, mockOTP.ID, false)
-	assert.Equal(t, ErrNotExist, err, "OTP wasn't deleted")
+	assert.Equal(t, store.ErrNotExist, err, "OTP wasn't deleted")
 }

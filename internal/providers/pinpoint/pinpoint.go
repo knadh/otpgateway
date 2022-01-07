@@ -11,7 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/pinpoint"
-	"github.com/knadh/otpgateway/models"
+	"github.com/knadh/otpgateway/internal/models"
 )
 
 const (

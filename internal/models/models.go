@@ -1,9 +1,29 @@
-package otpgateway
+package models
 
-import "github.com/knadh/otpgateway/models"
+import (
+	"encoding/json"
+	"time"
+)
 
-// ProviderConf represents the common configuration types for a Provider.
-type ProviderConf struct {
+// OTP contains the information about an OTP.
+type OTP struct {
+	Namespace   string          `redis:"namespace" json:"namespace"`
+	ID          string          `redis:"id" json:"id"`
+	To          string          `redis:"to" json:"to"`
+	ChannelDesc string          `redis:"channel_description" json:"channel_description"`
+	AddressDesc string          `redis:"address_description" json:"address_description"`
+	Extra       json.RawMessage `redis:"extra" json:"extra"`
+	Provider    string          `redis:"provider" json:"provider"`
+	OTP         string          `redis:"otp" json:"otp"`
+	MaxAttempts int             `redis:"max_attempts" json:"max_attempts"`
+	Attempts    int             `redis:"attempts" json:"attempts"`
+	Closed      bool            `redis:"closed" json:"closed"`
+	TTL         time.Duration   `redis:"-" json:"-"`
+	TTLSeconds  float64         `redis:"-" json:"ttl"`
+}
+
+// ProviderConfig represents the common configuration types for a Provider.
+type ProviderConfig struct {
 	Template string `mapstructure:"template"`
 	Subject  string `mapstructure:"subject"`
 	Config   string `mapstructure:"config"`
@@ -48,7 +68,7 @@ type Provider interface {
 	// Push pushes a message. Depending on the the Provider,
 	// implementation, this can either cause the message to
 	// be sent immediately or be queued waiting for a Flush().
-	Push(otp models.OTP, subject string, body []byte) error
+	Push(otp OTP, subject string, body []byte) error
 
 	// MaxAddressLen returns the maximum allowed length of the 'to' address.
 	MaxAddressLen() int

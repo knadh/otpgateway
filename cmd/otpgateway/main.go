@@ -10,7 +10,9 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/knadh/koanf"
-	"github.com/knadh/otpgateway"
+	"github.com/knadh/otpgateway/internal/store"
+	"github.com/knadh/otpgateway/internal/store/redis"
+	"github.com/knadh/otpgateway/internal/models"
 	"github.com/knadh/stuffbin"
 )
 
@@ -22,8 +24,8 @@ type providerTpl struct {
 // App is the global app context that groups the necessary
 // controls (db, config etc.) to be injected into the HTTP handlers.
 type App struct {
-	store        otpgateway.Store
-	providers    map[string]otpgateway.Provider
+	store        store.Store
+	providers    map[string]models.Provider
 	providerTpls map[string]*providerTpl
 	log          *log.Logger
 	tpl          *template.Template
@@ -75,9 +77,9 @@ func main() {
 	app.providerTpls = tpls
 
 	// Load the store.
-	var rc otpgateway.RedisConf
+	var rc redis.Conf
 	ko.UnmarshalWithConf("store.redis", &rc, koanf.UnmarshalConf{Tag: "json"})
-	app.store = otpgateway.NewRedisStore(rc)
+	app.store = redis.New(rc)
 
 	// Compile static templates.
 	tpl, err := stuffbin.ParseTemplatesGlob(nil, app.fs, "/static/*.html")

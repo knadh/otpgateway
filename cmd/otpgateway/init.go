@@ -14,8 +14,8 @@ import (
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/providers/posflag"
+	"github.com/knadh/otpgateway/internal/models"
 
-	"github.com/knadh/otpgateway"
 	"github.com/knadh/stuffbin"
 	flag "github.com/spf13/pflag"
 )
@@ -69,9 +69,9 @@ func initConfig() {
 	ko.Load(posflag.Provider(f, ".", ko), nil)
 }
 
-// initProviders loads otpgateway.Provider plugins from the list of given filenames.
-func initProviders(names []string) (map[string]otpgateway.Provider, error) {
-	out := make(map[string]otpgateway.Provider)
+// initProviders loads models.Provider plugins from the list of given filenames.
+func initProviders(names []string) (map[string]models.Provider, error) {
+	out := make(map[string]models.Provider)
 	for _, fName := range names {
 		plg, err := plugin.Open(fName)
 		if err != nil {
@@ -89,22 +89,22 @@ func initProviders(names []string) (map[string]otpgateway.Provider, error) {
 		}
 
 		// Plugin loaded. Load it's configuration.
-		var cfg otpgateway.ProviderConf
+		var cfg models.ProviderConfig
 		ko.Unmarshal("provider."+id, &cfg)
 		if cfg.Config == "" {
 			lo.Printf("WARNING: No config 'provider.%s' for '%s' in config", id, id)
 		}
 
 		// Initialize the plugin.
-		provider, err := f([]byte(cfg.Config))
+		prov, err := f([]byte(cfg.Config))
 		if err != nil {
 			return nil, fmt.Errorf("error initializing provider plugin '%s': %v", id, err)
 		}
 		lo.Printf("loaded provider plugin '%s' from %s", id, fName)
 
-		p, ok := provider.(otpgateway.Provider)
+		p, ok := prov.(models.Provider)
 		if !ok {
-			return nil, fmt.Errorf("New() function does not return a provider that satisfies otpgateway.Provider (%T) in plugin '%s'", provider, id)
+			return nil, fmt.Errorf("New() function does not return a provider that satisfies models.Provider (%T) in plugin '%s'", prov, id)
 		}
 
 		if p.ID() != id {

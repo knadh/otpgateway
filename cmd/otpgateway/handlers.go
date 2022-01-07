@@ -15,8 +15,8 @@ import (
 	"time"
 
 	"github.com/go-chi/chi"
-	"github.com/knadh/otpgateway"
-	"github.com/knadh/otpgateway/models"
+	"github.com/knadh/otpgateway/internal/store"
+	"github.com/knadh/otpgateway/internal/models"
 )
 
 const (
@@ -74,10 +74,6 @@ type pushTpl struct {
 	OTP       string
 	OTPURL    string
 }
-
-// ErrNotExist is thrown when an OTP (requested by namespace / ID)
-// does not exist.
-var ErrNotExist = errors.New("the OTP does not exist")
 
 // handleGetProviders returns the list of available message providers.
 func handleGetProviders(w http.ResponseWriter, r *http.Request) {
@@ -203,14 +199,14 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 
 	// Check if the OTP attempts have exceeded the quota.
 	otp, err := app.store.Check(namespace, id, false)
-	if err != nil && err != otpgateway.ErrNotExist {
+	if err != nil && err != store.ErrNotExist {
 		app.log.Printf("error checking OTP status: %v", err)
 		sendErrorResponse(w, "Error checking OTP status.", http.StatusBadRequest, nil)
 		return
 	}
 
 	// There's an existing OTP that's locked.
-	if err != otpgateway.ErrNotExist && isLocked(otp) {
+	if err != store.ErrNotExist && isLocked(otp) {
 		sendErrorResponse(w,
 			fmt.Sprintf("OTP attempts exceeded. Retry after %0.f seconds.",
 				otp.TTL.Seconds()),
@@ -268,7 +264,7 @@ func handleCheckOTPStatus(w http.ResponseWriter, r *http.Request) {
 	// Check the OTP status.
 	out, err := app.store.Check(namespace, id, false)
 	if err != nil {
-		if err == otpgateway.ErrNotExist {
+		if err == store.ErrNotExist {
 			sendErrorResponse(w, err.Error(), http.StatusBadRequest, nil)
 			return
 		}
@@ -308,7 +304,7 @@ func handleVerifyOTP(w http.ResponseWriter, r *http.Request) {
 	out, err := verifyOTP(namespace, id, otpVal, !skipDelete, app)
 	if err != nil {
 		code := http.StatusBadRequest
-		if err == otpgateway.ErrNotExist {
+		if err == store.ErrNotExist {
 			sendErrorResponse(w, err.Error(), code, nil)
 			return
 		}
@@ -346,7 +342,7 @@ func handleOTPView(w http.ResponseWriter, r *http.Request) {
 		// Validate the attempt.
 		out, otpErr = verifyOTP(namespace, id, otp, false, app)
 	}
-	if otpErr == otpgateway.ErrNotExist {
+	if otpErr == store.ErrNotExist {
 		app.tpl.ExecuteTemplate(w, "message", webviewTpl{App: app.constants,
 			Title: "Session expired",
 			Description: `Your session has expired.
@@ -430,7 +426,7 @@ func handleGetOTPClosed(w http.ResponseWriter, r *http.Request) {
 
 	out, err := app.store.Check(namespace, id, false)
 	if err != nil {
-		if err == otpgateway.ErrNotExist {
+		if err == store.ErrNotExist {
 			sendErrorResponse(w, "Session expired.", http.StatusBadRequest, nil)
 			return
 		}
@@ -456,7 +452,7 @@ func handleAddressView(w http.ResponseWriter, r *http.Request) {
 
 	out, err := app.store.Check(namespace, id, false)
 	if err != nil {
-		if err == otpgateway.ErrNotExist {
+		if err == store.ErrNotExist {
 			app.tpl.ExecuteTemplate(w, "message", webviewTpl{App: app.constants,
 				Title: "Session expired",
 				Description: `Your session has expired.
@@ -524,7 +520,7 @@ func verifyOTP(namespace, id, otp string, deleteOnVerify bool, app *App) (models
 	// Check the OTP.
 	out, err := app.store.Check(namespace, id, true)
 	if err != nil {
-		if err != otpgateway.ErrNotExist {
+		if err != store.ErrNotExist {
 			app.log.Printf("error checking OTP: %v", err)
 			return out, err
 		}
@@ -608,7 +604,7 @@ func isLocked(otp models.OTP) bool {
 }
 
 // push compiles a message template and pushes it to the provider.
-func push(otp models.OTP, tpl *providerTpl, p otpgateway.Provider, rootURL string) error {
+func push(otp models.OTP, tpl *providerTpl, p models.Provider, rootURL string) error {
 	var (
 		subj = &bytes.Buffer{}
 		out  = &bytes.Buffer{}

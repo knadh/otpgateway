@@ -14,14 +14,14 @@ CI_COMMIT_TAG := $(shell git tag | tail -n 1)
 
 .PHONY: build
 build:
-	# Compile the smtp provider plugin.
-	go build -ldflags="-s -w" -buildmode=plugin -o ${SMTP_BIN} providers/smtp/smtp.go
+# 	# Compile the smtp provider plugin.
+# 	go build -ldflags="-s -w" -buildmode=plugin -o ${SMTP_BIN} provider/internal/smtp/smtp.go
 
-	# Compile the solsms provider plugin.
-	go build -ldflags="-s -w" -buildmode=plugin -o ${SOLSMS_BIN} providers/solsms/solsms.go
+# 	# Compile the solsms provider plugin.
+# 	go build -ldflags="-s -w" -buildmode=plugin -o ${SOLSMS_BIN} provider/internal/solsms/solsms.go
 
-	# Compile the pinpoint provider plugin.
-	go build -ldflags="-s -w" -buildmode=plugin -o ${PINPOINT_BIN} providers/pinpoint/pinpoint.go
+# 	# Compile the pinpoint provider plugin.
+# 	go build -ldflags="-s -w" -buildmode=plugin -o ${PINPOINT_BIN} provider/internal/pinpoint/pinpoint.go
 
 	# Compile the main application.
 	go build -o ${BIN} -ldflags="-s -w -X 'main.buildString=${BUILDSTR}'" cmd/otpgateway/*.go

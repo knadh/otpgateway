@@ -16,8 +16,9 @@ import (
 
 	"github.com/alicebob/miniredis"
 	"github.com/go-chi/chi"
-	"github.com/knadh/otpgateway"
-	"github.com/knadh/otpgateway/models"
+	"github.com/knadh/otpgateway/internal/store/redis"
+	"github.com/knadh/otpgateway/internal/models"
+	"github.com/knadh/otpgateway/provider"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -106,7 +107,7 @@ func init() {
 	// Dummy app.
 	app := &App{
 		log:       lo,
-		providers: map[string]otpgateway.Provider{dummyProvider: &dummyProv{}},
+		providers: map[string]provider.Provider{dummyProvider: &dummyProv{}},
 		providerTpls: map[string]*providerTpl{
 			dummyProvider: &providerTpl{
 				subject: tpl,
@@ -117,7 +118,7 @@ func init() {
 			OtpTTL:         10 * time.Second,
 			OtpMaxAttempts: 10,
 		},
-		store: otpgateway.NewRedisStore(otpgateway.RedisConf{
+		store: redis.New(redis.Conf{
 			Host: rd.Host(),
 			Port: port,
 		}),

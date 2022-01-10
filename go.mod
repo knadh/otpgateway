@@ -8,8 +8,8 @@ require (
 	github.com/aws/aws-sdk-go v1.41.9
 	github.com/go-chi/chi v4.1.2+incompatible
 	github.com/gomodule/redigo v2.0.0+incompatible
-	github.com/jordan-wright/email v0.0.0-20190109025503-f0c364f2e0b6
 	github.com/knadh/koanf v1.4.0
+	github.com/knadh/smtppool v0.4.0
 	github.com/knadh/stuffbin v1.1.0
 	github.com/mitchellh/mapstructure v1.4.3 // indirect
 	github.com/spf13/pflag v1.0.5

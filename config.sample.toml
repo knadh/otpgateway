@@ -1,0 +1,138 @@
+[app]
+address = "0.0.0.0:9000"
+server_timeout = "5s"
+
+# TTL / Expiry for the OTP in seconds.
+otp_ttl = 300
+otp_max_attempts = 5
+otp_max_resends = 3
+
+# The root URL where the OTPGateway server is running
+root_url = "http://localhost:9000"
+
+logo_url = ""
+favicon_url = ""
+
+
+[store.redis]
+host = "localhost"
+port = "6379"
+user = ""
+password = ""
+
+# If this key is set, check|close events will be published to the key
+# using Redis PubSub (try watching with PSUBSCRIBE *).
+publish_key = ""
+
+
+
+# Namespaces (application tenants) and tokens. OTPs are generated
+# under these namespaces and the OTP APIs require
+# namespace + secret as BasicAuth headers for authentication.
+[auth.MyApp]
+namespace = "MyApp"
+secret = "mySecretToken"
+
+[auth.MyOtherApp]
+namespace = "MyOtherApp"
+secret = "myOtherSecretToken"
+
+
+# Built in providers and webhook.* provider definitions.
+# All providers and webhooks can have these two optional params.
+#
+# subject = "A subject string that will be passed to the provider when sending a message"
+# Supported Go template tags in the 'subject' field and the template file
+# {{ .To }} - The receipient's To address given to the provider (eg: e-mail address or phone)
+# {{ .Namespace}} - The namespace that's passed during OTP registration
+# {{ .ChannelName }} - The channel name of the provider (for eg: smtp provider's channel name is "E-mail")
+# {{ .OTP }} - The generated OTP
+# {{ .OTPURL }} - Direct URL to the OTP verification page for instant verification (for eg: to send in e-mails)
+#
+# template = "optional_path_to_message_body.file"
+
+[providers.smtp]
+enabled = true
+
+# Supported Go template tags in the 'subject' field and the template file
+# {{ .To }} - The receipient's To address given to the provider (eg: e-mail address or phone)
+# {{ .Namespace}} - The namespace that's passed during OTP registration
+# {{ .ChannelName }} - The channel name of the provider (for eg: smtp provider's channel name is "E-mail")
+# {{ .OTP }} - The generated OTP
+# {{ .OTPURL }} - Direct URL to the OTP verification page for instant verification (for eg: to send in e-mails)
+subject = "{{ .Namespace }}: {{ .Channel }} verification"
+template = "static/smtp.tpl"
+
+# Upstream provider config.
+from_email = "OTP verification <yoursite@yoursite.com>"
+host = "localhost"
+port = 25
+auth_protocol = "cram" # login | cram | plain | none
+username = "smtp-user"
+password = "smtp-password"
+max_conns = 10
+timeout = "5s"
+tls_type = "none" # none | STARTTLS | TLS
+tls_skip_verify = false
+
+
+[providers.kalyera]
+enabled = false
+subject = "Verification"
+template = "static/sms.txt"
+template_type = "text"
+
+# Upstream provider config.
+sender_id = ""
+api_key = ""
+
+max_conns = 10
+request_timeout = "5s"
+
+
+[providers.pinpoint_sms]
+enabled = false
+subject = "Verification"
+template = "static/sms.txt"
+template_type = "text"
+
+# Upstream provider config.
+application_id = ""
+access_key = ""
+secret_key = ""
+region = ""
+sms_sender_id = ""
+sms_template_id = ""
+sms_message_type = "TRANSACTIONAL"
+
+# For SMS/phone messages, if an address doesn't start with + or 00, use this defualt country code.
+default_phone_code = "+91"
+
+
+# Connection config
+max_conns = 10
+timeout = "5s"
+
+
+# Custom providers registered as webhooks.
+[webhooks.your_provider]
+enabled = false
+
+url = "https://your-webhook-endpoint:8000"
+max_conns = 10
+request_timeout = "5s"
+
+# BasicAuth (Authorization header) credentials to post to the URL.
+username = ""
+password = ""
+
+subject = "{{ .Namespace }}: {{ .Channel }} verification"
+template = ""
+
+# Name of the channel where the OTP is sent (eg: SMS, phone call, email, Whatsapp)
+channel_name = "Phone call"
+
+# Name of the address that is being verified (eg: E-mail address, mobile number, bank account number)
+address_name = "Mobile number"
+max_address_len = 12
+max_otp_len = 6

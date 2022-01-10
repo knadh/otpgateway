@@ -105,12 +105,12 @@ func init() {
 
 	// Dummy app.
 	app := &App{
-		log:       lo,
-		providers: map[string]models.Provider{dummyProvider: &dummyProv{}},
+		lo:        lo,
+		providers: map[string]*provider{dummyProvider: &provider{provider: &dummyProv{}}},
 		providerTpls: map[string]*providerTpl{
 			dummyProvider: &providerTpl{
 				subject: tpl,
-				tpl:     tpl,
+				body:    tpl,
 			},
 		},
 		constants: constants{

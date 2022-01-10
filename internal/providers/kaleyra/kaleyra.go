@@ -46,7 +46,7 @@ type apiResp struct {
 }
 
 // New implements a Kaleyra SMS provider.
-func New(cfg Config) (interface{}, error) {
+func New(cfg Config) (*Kaleyra, error) {
 	if cfg.APIKey == "" || cfg.Sender == "" {
 		return nil, errors.New("invalid APIKey or Sender")
 	}

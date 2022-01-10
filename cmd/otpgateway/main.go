@@ -12,22 +12,16 @@ import (
 	"github.com/knadh/koanf"
 	"github.com/knadh/otpgateway/v3/internal/store"
 	"github.com/knadh/otpgateway/v3/internal/store/redis"
-	"github.com/knadh/otpgateway/v3/internal/models"
 	"github.com/knadh/stuffbin"
 )
-
-type providerTpl struct {
-	subject *template.Template
-	tpl     *template.Template
-}
 
 // App is the global app context that groups the necessary
 // controls (db, config etc.) to be injected into the HTTP handlers.
 type App struct {
 	store        store.Store
-	providers    map[string]models.Provider
+	providers    map[string]*provider
 	providerTpls map[string]*providerTpl
-	log          *log.Logger
+	lo           *log.Logger
 	tpl          *template.Template
 	fs           stuffbin.FileSystem
 	constants    constants
@@ -44,39 +38,21 @@ var (
 func main() {
 	initConfig()
 
-	provs, err := initProviders(ko.Strings("prov"))
-	if err != nil {
-		lo.Fatal(err)
-	} else if len(provs) == 0 {
-		lo.Fatal("no providers loaded. Use --provider to load a provider plugin.")
-	}
-
 	app := &App{
-		providers: provs,
-		log:       lo,
 		fs:        initFS(os.Args[0]),
+		providers: initProviders(ko),
+		lo:        lo,
 
 		constants: constants{
-			OtpTTL:         ko.Duration("app.otp_ttl") * time.Second,
-			OtpMaxAttempts: ko.Int("app.otp_max_attempts"),
+			OtpTTL:         ko.MustDuration("app.otp_ttl") * time.Second,
+			OtpMaxAttempts: ko.MustInt("app.otp_max_attempts"),
 			RootURL:        strings.TrimRight(ko.String("app.root_url"), "/"),
 			LogoURL:        ko.String("app.logo_url"),
 			FaviconURL:     ko.String("app.favicon_url"),
 		},
 	}
 
-	// Load provider templates.
-	var pNames []string
-	for p := range provs {
-		pNames = append(pNames, p)
-	}
-	tpls, err := initProviderTemplates(pNames)
-	if err != nil {
-		lo.Fatal(err)
-	}
-	app.providerTpls = tpls
-
-	// Load the store.
+	// Initialize the Redis store.
 	var rc redis.Conf
 	ko.UnmarshalWithConf("store.redis", &rc, koanf.UnmarshalConf{Tag: "json"})
 	app.store = redis.New(rc)
@@ -93,7 +69,7 @@ func main() {
 		lo.Fatal("no auth entries found in config")
 	}
 
-	// Register handles.
+	// Register HTTP handlers.
 	r := chi.NewRouter()
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("otpgateway"))
@@ -114,15 +90,11 @@ func main() {
 	})
 
 	// HTTP Server.
-	timeout := ko.Duration("app.server_timeout")
-	if timeout.Seconds() < 1 {
-		timeout = time.Second * 5
-	}
 
 	srv := &http.Server{
-		Addr:         ko.String("app.address"),
-		ReadTimeout:  timeout,
-		WriteTimeout: timeout,
+		Addr:         ko.MustString("app.address"),
+		ReadTimeout:  ko.MustDuration("app.server_timeout"),
+		WriteTimeout: ko.MustDuration("app.server_timeout"),
 		Handler:      r,
 	}
 

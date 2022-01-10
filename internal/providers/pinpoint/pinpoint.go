@@ -1,11 +1,12 @@
-package main
+package pinpoint
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -28,22 +29,27 @@ var (
 
 var reNum = regexp.MustCompile(`\+?([0-9]){8,15}`)
 
-// sms is the default representation of the sms interface.
-type sms struct {
-	cfg *cfg
+// PinpointSMS implements the AWS PinpointSMS SMS provider.
+type PinpointSMS struct {
+	cfg Config
 	p   *pinpoint.Pinpoint
 }
 
-type cfg struct {
-	AppID        string `json:"AppID"`
-	AWSAccessKey string `json:"AWSAccessKey"`
-	AWSSecretKey string `json:"AWSSecretKey"`
-	AWSRegion    string `json:"AWSRegion"`
-	MessageType  string `json:"MessageType"`
-	SenderID     string `json:"SenderID"`
+type Config struct {
+	ApplicationID    string `json:"application_id"`
+	AccessKey        string `json:"access_key"`
+	SecretKey        string `json:"secret_key"`
+	Region           string `json:"region"`
+	SMSSenderID      string `json:"sms_sender_id"`
+	SMSMessageType   string `json:"sms_message_type"`
+	SMSTemplateID    string `json:"sms_template_id"`
+	DefaultPhoneCode string `json:"default_phone_code"`
+
+	MaxConns int           `json:"max_conns"`
+	Timeout  time.Duration `json:"timeout"`
 }
 
-// New returns an instance of the SMS package. cfg is configuration
+// NewSMS returns an instance of the SMS package. cfg is configuration
 // represented as a JSON string. Supported options are.
 // {
 // 	AppID: "", // Application ID for amazon pinpoint service,
@@ -53,67 +59,73 @@ type cfg struct {
 // 	MessageType: "", // MessageType to signify if it is transactional sms,
 // 	SenderID: "" // Unique sender id
 // }
-func New(jsonCfg []byte) (interface{}, error) {
-	var c *cfg
-	if err := json.Unmarshal(jsonCfg, &c); err != nil {
-		return nil, err
+func NewSMS(cfg Config) (*PinpointSMS, error) {
+	if cfg.ApplicationID == "" {
+		return nil, errors.New("invalid application_id")
+	}
+	if cfg.Region == "" {
+		return nil, errors.New("invalid region")
+	}
+	if cfg.AccessKey == "" {
+		return nil, errors.New("invalid access_key")
+	}
+	if cfg.SecretKey == "" {
+		return nil, errors.New("invalid secret_key")
 	}
 
-	// Validations.
-	if c.AppID == "" {
-		return nil, errors.New("invalid AppID")
+	if cfg.MaxConns < 1 {
+		cfg.MaxConns = 1
 	}
-	if c.AWSRegion == "" {
-		return nil, errors.New("invalid AWSRegion")
-	}
-	if c.AWSAccessKey == "" {
-		return nil, errors.New("invalid AWSAccessKey")
-	}
-	if c.AWSSecretKey == "" {
-		return nil, errors.New("invalid AWSSecretKey")
+	if cfg.Timeout.Seconds() < 1 {
+		cfg.Timeout = time.Second * 3
 	}
 
-	sess := session.Must(session.NewSession())
-	svc := pinpoint.New(sess,
+	p := pinpoint.New(session.Must(session.NewSession()),
 		aws.NewConfig().
-			WithCredentials(credentials.NewStaticCredentials(c.AWSAccessKey, c.AWSSecretKey, "")).
-			WithRegion(c.AWSRegion),
+			WithCredentials(credentials.NewStaticCredentials(cfg.AccessKey, cfg.SecretKey, "")).
+			WithRegion(cfg.Region).
+			WithHTTPClient(&http.Client{
+				Timeout: cfg.Timeout,
+				Transport: &http.Transport{
+					MaxIdleConnsPerHost:   cfg.MaxConns,
+					IdleConnTimeout:       90 * time.Second,
+					ResponseHeaderTimeout: cfg.Timeout,
+				},
+			}),
 	)
 
-	return &sms{
-		cfg: c,
-		p:   svc}, nil
+	return &PinpointSMS{cfg: cfg, p: p}, nil
 }
 
 // ID returns the Provider's ID.
-func (s *sms) ID() string {
+func (p *PinpointSMS) ID() string {
 	return providerID
 }
 
 // ChannelName returns the Provider's name.
-func (s *sms) ChannelName() string {
+func (p *PinpointSMS) ChannelName() string {
 	return channelName
 }
 
 // AddressName returns the e-mail Provider's address name.
-func (*sms) AddressName() string {
+func (p *PinpointSMS) AddressName() string {
 	return addressName
 }
 
 // ChannelDesc returns help text for the SMS verification Provider.
-func (s *sms) ChannelDesc() string {
+func (p *PinpointSMS) ChannelDesc() string {
 	return fmt.Sprintf(`
-		We've sent a %d digit code in an SMS to your mobile.
+		A %d digit code has been sent as an SMS to your mobile.
 		Enter it here to verify your mobile number.`, maxOTPlen)
 }
 
 // AddressDesc returns help text for the phone number.
-func (s *sms) AddressDesc() string {
+func (p *PinpointSMS) AddressDesc() string {
 	return "Please enter your mobile number"
 }
 
 // ValidateAddress "validates" a phone number.
-func (s *sms) ValidateAddress(to string) error {
+func (p *PinpointSMS) ValidateAddress(to string) error {
 	if !reNum.MatchString(to) {
 		return errors.New("invalid mobile number")
 	}
@@ -121,27 +133,28 @@ func (s *sms) ValidateAddress(to string) error {
 }
 
 // Push pushes out an SMS.
-func (s *sms) Push(otp models.OTP, subject string, body []byte) error {
-	var msg = string(body)
+func (p *PinpointSMS) Push(otp models.OTP, subject string, body []byte) error {
+	msg := string(body)
 
 	payload := &pinpoint.SendMessagesInput{
-		ApplicationId: &s.cfg.AppID,
+		ApplicationId: &p.cfg.ApplicationID,
 		MessageRequest: &pinpoint.MessageRequest{
 			Addresses: map[string]*pinpoint.AddressConfiguration{
-				sanitizePhone(otp.To): &pinpoint.AddressConfiguration{
+				p.sanitizePhone(otp.To): &pinpoint.AddressConfiguration{
 					ChannelType: &channelType,
 				},
 			},
 			MessageConfiguration: &pinpoint.DirectMessageConfiguration{
 				SMSMessage: &pinpoint.SMSMessage{
 					Body:        &msg,
-					MessageType: &s.cfg.MessageType,
-					SenderId:    &s.cfg.SenderID,
+					MessageType: &p.cfg.SMSMessageType,
+					SenderId:    &p.cfg.SMSSenderID,
+					TemplateId:  &p.cfg.SMSTemplateID,
 				},
 			},
 		},
 	}
-	if _, err := s.p.SendMessages(payload); err != nil {
+	if _, err := p.p.SendMessages(payload); err != nil {
 		return err
 	}
 
@@ -149,28 +162,28 @@ func (s *sms) Push(otp models.OTP, subject string, body []byte) error {
 }
 
 // MaxAddressLen returns the maximum allowed length for the mobile number.
-func (s *sms) MaxAddressLen() int {
+func (p *PinpointSMS) MaxAddressLen() int {
 	return maxAddresslen
 }
 
 // MaxOTPLen returns the maximum allowed length of the OTP value.
-func (s *sms) MaxOTPLen() int {
+func (p *PinpointSMS) MaxOTPLen() int {
 	return maxOTPlen
 }
 
 // MaxBodyLen returns the max permitted body size.
-func (s *sms) MaxBodyLen() int {
+func (p *PinpointSMS) MaxBodyLen() int {
 	return 140
 }
 
-func sanitizePhone(phone string) string {
+func (p *PinpointSMS) sanitizePhone(phone string) string {
 	phone = strings.TrimSpace(phone)
-	// If length is 10 then assume it as Indian phone number
-	if len(phone) == 10 {
-		return "+91" + phone
-	} else if len(phone) > 10 && strings.HasPrefix(phone, "00") {
-		return "+" + phone[2:]
-	} else {
+
+	if strings.HasPrefix(phone, "+") {
 		return phone
+	} else if strings.HasPrefix(phone, "00") {
+		return "+" + phone[2:]
 	}
+
+	return p.cfg.DefaultPhoneCode + phone
 }

@@ -71,10 +71,10 @@ github.com/jmespath/go-jmespath/internal/testify v1.5.1 h1:shLQSRRSCCPj3f2gpwzGw
 github.com/jmespath/go-jmespath/internal/testify v1.5.1/go.mod h1:L3OGu8Wl2/fWfCI6z80xFu9LTZmf1ZRjMHUOPmWr69U=
 github.com/joho/godotenv v1.3.0 h1:Zjp+RcGpHhGlrMbJzXTrZZPrWj+1vfm90La1wgB6Bhc=
 github.com/joho/godotenv v1.3.0/go.mod h1:7hK45KPybAkOC6peb+G5yklZfMxEjkZhHbwpqxOKXbg=
-github.com/jordan-wright/email v0.0.0-20190109025503-f0c364f2e0b6 h1:ox6UQP5PIj+1Ub5Z+nX7bA8nhDnZD8wGrHT4/yn0R3A=
-github.com/jordan-wright/email v0.0.0-20190109025503-f0c364f2e0b6/go.mod h1:1c7szIrayyPPB/987hsnvNzLushdWf4o/79s3P08L8A=
 github.com/knadh/koanf v1.4.0 h1:/k0Bh49SqLyLNfte9r6cvuZWrApOQhglOmhIU3L/zDw=
 github.com/knadh/koanf v1.4.0/go.mod h1:1cfH5223ZeZUOs8FU2UdTmaNfHpqgtjV0+NHjRO43gs=
+github.com/knadh/smtppool v0.4.0 h1:335iXPwZ6katJVhauV4O6e8uPvvPmO6YLrfDQhb6UvE=
+github.com/knadh/smtppool v0.4.0/go.mod h1:3DJHouXAgPDBz0kC50HukOsdapYSwIEfJGwuip46oCA=
 github.com/knadh/stuffbin v1.1.0 h1:f5S5BHzZALjuJEgTIOMC9NidEnBJM7Ze6Lu1GHR/lwU=
 github.com/knadh/stuffbin v1.1.0/go.mod h1:yVCFaWaKPubSNibBsTAJ939q2ABHudJQxRWZWV5yh+4=
 github.com/mattn/go-colorable v0.0.9/go.mod h1:9vuHe8Xs5qXnSaW/c/ABM9alt+Vo+STaOChaDxuIBZU=

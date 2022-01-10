@@ -15,8 +15,8 @@ import (
 	"time"
 
 	"github.com/go-chi/chi"
-	"github.com/knadh/otpgateway/v3/internal/store"
 	"github.com/knadh/otpgateway/v3/internal/models"
+	"github.com/knadh/otpgateway/v3/internal/store"
 )
 
 const (
@@ -121,7 +121,7 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 	)
 
 	// Get the provider.
-	pro, ok := app.providers[provider]
+	p, ok := app.providers[provider]
 	if !ok {
 		sendErrorResponse(w, "unknown provider", http.StatusBadRequest, nil)
 		return
@@ -131,7 +131,7 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 	// If an address is not set, the gateway will render the address
 	// collection UI.
 	if to != "" {
-		if err := pro.ValidateAddress(to); err != nil {
+		if err := p.provider.ValidateAddress(to); err != nil {
 			sendErrorResponse(w, fmt.Sprintf("invalid `to` address: %v", err),
 				http.StatusBadRequest, nil)
 			return
@@ -178,7 +178,7 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	} else if id == "" {
 		if i, err := generateRandomString(32, alphaNumChars); err != nil {
-			app.log.Printf("error generating ID: %v", err)
+			app.lo.Printf("error generating ID: %v", err)
 			sendErrorResponse(w, "Error generating ID.", http.StatusInternalServerError, nil)
 			return
 		} else {
@@ -188,9 +188,9 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 
 	// If there's no incoming OTP, generate a random one.
 	if otpVal == "" {
-		o, err := generateRandomString(pro.MaxOTPLen(), numChars)
+		o, err := generateRandomString(p.provider.MaxOTPLen(), numChars)
 		if err != nil {
-			app.log.Printf("error generating OTP: %v", err)
+			app.lo.Printf("error generating OTP: %v", err)
 			sendErrorResponse(w, "Error generating OTP.", http.StatusInternalServerError, nil)
 			return
 		}
@@ -200,7 +200,7 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 	// Check if the OTP attempts have exceeded the quota.
 	otp, err := app.store.Check(namespace, id, false)
 	if err != nil && err != store.ErrNotExist {
-		app.log.Printf("error checking OTP status: %v", err)
+		app.lo.Printf("error checking OTP status: %v", err)
 		sendErrorResponse(w, "Error checking OTP status.", http.StatusBadRequest, nil)
 		return
 	}
@@ -230,15 +230,15 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 		MaxAttempts: maxAttempts,
 	})
 	if err != nil {
-		app.log.Printf("error setting OTP: %v", err)
+		app.lo.Printf("error setting OTP: %v", err)
 		sendErrorResponse(w, "Error setting OTP.", http.StatusInternalServerError, nil)
 		return
 	}
 
 	// Push the OTP out.
 	if to != "" {
-		if err := push(newOTP, app.providerTpls[pro.ID()], pro, app.constants.RootURL); err != nil {
-			app.log.Printf("error sending OTP: %v", err)
+		if err := push(newOTP, p, app.constants.RootURL); err != nil {
+			app.lo.Printf("error sending OTP: %v", err)
 			sendErrorResponse(w, "Error sending OTP.", http.StatusInternalServerError, nil)
 			return
 		}
@@ -269,7 +269,7 @@ func handleCheckOTPStatus(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		app.log.Printf("error checking OTP: %v", err)
+		app.lo.Printf("error checking OTP: %v", err)
 		sendErrorResponse(w, err.Error(), http.StatusBadRequest, nil)
 		return
 	}
@@ -375,10 +375,10 @@ func handleOTPView(w http.ResponseWriter, r *http.Request) {
 		app.tpl.ExecuteTemplate(w, "message", webviewTpl{App: app.constants,
 			OTP:    out,
 			Closed: true,
-			Title:  fmt.Sprintf("%s verified", pro.ChannelName()),
+			Title:  fmt.Sprintf("%s verified", pro.provider.ChannelName()),
 			Description: fmt.Sprintf(
 				`Your %s is verified. This page can be closed now.`,
-				pro.ChannelName()),
+				pro.provider.ChannelName()),
 		})
 		return
 	}
@@ -394,8 +394,8 @@ func handleOTPView(w http.ResponseWriter, r *http.Request) {
 	// It's a resend request.
 	if action == actResend {
 		msg = "OTP resent"
-		if err := push(out, app.providerTpls[pro.ID()], pro, app.constants.RootURL); err != nil {
-			app.log.Printf("error sending OTP: %v", err)
+		if err := push(out, pro, app.constants.RootURL); err != nil {
+			app.lo.Printf("error sending OTP: %v", err)
 			otpErr = errors.New("error resending OTP.")
 		}
 	}
@@ -405,12 +405,12 @@ func handleOTPView(w http.ResponseWriter, r *http.Request) {
 	}
 
 	app.tpl.ExecuteTemplate(w, "otp", webviewTpl{App: app.constants,
-		ChannelName: pro.ChannelName(),
-		MaxOTPLen:   pro.MaxOTPLen(),
+		ChannelName: pro.provider.ChannelName(),
+		MaxOTPLen:   pro.provider.MaxOTPLen(),
 		Message:     msg,
-		Title:       fmt.Sprintf("Verify %s", pro.ChannelName()),
-		ChannelDesc: pro.ChannelDesc(),
-		AddressDesc: pro.AddressDesc(),
+		Title:       fmt.Sprintf("Verify %s", pro.provider.ChannelName()),
+		ChannelDesc: pro.provider.ChannelDesc(),
+		AddressDesc: pro.provider.AddressDesc(),
 		OTP:         out,
 	})
 }
@@ -459,7 +459,7 @@ func handleAddressView(w http.ResponseWriter, r *http.Request) {
 					Please re-initiate the verification.`,
 			})
 		} else {
-			app.log.Printf("error checking OTP: %v", err)
+			app.lo.Printf("error checking OTP: %v", err)
 			app.tpl.ExecuteTemplate(w, "message", webviewTpl{App: app.constants,
 				Title:       "Internal error",
 				Description: `Please try later.`,
@@ -487,14 +487,14 @@ func handleAddressView(w http.ResponseWriter, r *http.Request) {
 	// Validate the address.
 	msg := ""
 	if to != "" {
-		if err := pro.ValidateAddress(to); err != nil {
+		if err := pro.provider.ValidateAddress(to); err != nil {
 			msg = err.Error()
 		} else if err := app.store.SetAddress(namespace, id, to); err != nil {
 			msg = err.Error()
 		} else {
 			out.To = to
-			if err := push(out, app.providerTpls[pro.ID()], pro, app.constants.RootURL); err != nil {
-				app.log.Printf("error sending OTP: %v", err)
+			if err := push(out, pro, app.constants.RootURL); err != nil {
+				app.lo.Printf("error sending OTP: %v", err)
 				msg = "error sending OTP"
 			} else {
 				http.Redirect(w, r, fmt.Sprintf(uriViewOTP, out.Namespace, out.ID),
@@ -504,13 +504,13 @@ func handleAddressView(w http.ResponseWriter, r *http.Request) {
 	}
 
 	app.tpl.ExecuteTemplate(w, "index", webviewTpl{App: app.constants,
-		ChannelName:   pro.ChannelName(),
-		AddressName:   pro.AddressName(),
-		MaxAddressLen: pro.MaxAddressLen(),
+		ChannelName:   pro.provider.ChannelName(),
+		AddressName:   pro.provider.AddressName(),
+		MaxAddressLen: pro.provider.MaxAddressLen(),
 		Message:       msg,
-		Title:         fmt.Sprintf("Verify %s", pro.ChannelName()),
-		ChannelDesc:   pro.ChannelDesc(),
-		AddressDesc:   pro.AddressDesc(),
+		Title:         fmt.Sprintf("Verify %s", pro.provider.ChannelName()),
+		ChannelDesc:   pro.provider.ChannelDesc(),
+		AddressDesc:   pro.provider.AddressDesc(),
 		OTP:           out,
 	})
 }
@@ -521,7 +521,7 @@ func verifyOTP(namespace, id, otp string, deleteOnVerify bool, app *App) (models
 	out, err := app.store.Check(namespace, id, true)
 	if err != nil {
 		if err != store.ErrNotExist {
-			app.log.Printf("error checking OTP: %v", err)
+			app.lo.Printf("error checking OTP: %v", err)
 			return out, err
 		}
 		return out, errors.New("error checking OTP.")
@@ -604,13 +604,13 @@ func isLocked(otp models.OTP) bool {
 }
 
 // push compiles a message template and pushes it to the provider.
-func push(otp models.OTP, tpl *providerTpl, p models.Provider, rootURL string) error {
+func push(otp models.OTP, p *provider, rootURL string) error {
 	var (
 		subj = &bytes.Buffer{}
 		out  = &bytes.Buffer{}
 
 		data = pushTpl{
-			Channel:   p.ChannelName(),
+			Channel:   p.provider.ChannelName(),
 			Namespace: otp.Namespace,
 			To:        otp.To,
 			OTP:       otp.OTP,
@@ -618,19 +618,21 @@ func push(otp models.OTP, tpl *providerTpl, p models.Provider, rootURL string) e
 		}
 	)
 
-	if tpl.subject != nil {
-		if err := tpl.subject.Execute(subj, data); err != nil {
-			return err
+	if p.tpl != nil {
+		if p.tpl.subject != nil {
+			if err := p.tpl.subject.Execute(subj, data); err != nil {
+				return err
+			}
+		}
+
+		if p.tpl.body != nil {
+			if err := p.tpl.body.Execute(out, data); err != nil {
+				return err
+			}
 		}
 	}
 
-	if tpl.tpl != nil {
-		if err := tpl.tpl.Execute(out, data); err != nil {
-			return err
-		}
-	}
-
-	return p.Push(otp, subj.String(), out.Bytes())
+	return p.provider.Push(otp, subj.String(), out.Bytes())
 }
 
 func getURL(rootURL string, otp models.OTP, check bool) string {

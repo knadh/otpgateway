@@ -6,7 +6,7 @@ OTP (One Time Password) Gateway is a standalone web server that provides a centr
 
 - Use the built in web UI to easily integrate with existing applications.
 - Use the HTTP/JSON APIs to build your own UI.
-- Basic multi-tenancy with namespace+secret auth for seggregating applications.
+- Basic multi-tenancy with namespace+secret BasicAuth for seggregating applications.
 
 ![address](https://user-images.githubusercontent.com/547147/52076261-501e1300-25b4-11e9-8641-2189d0e4afb7.png)
 ![otp](https://user-images.githubusercontent.com/547147/51735115-7d4a5d00-20ac-11e9-8a86-3985665a7820.png)
@@ -14,19 +14,22 @@ OTP (One Time Password) Gateway is a standalone web server that provides a centr
 
 ## How does it work?
 
-The application is agnostic of the user's "address" and the OTP / verification codes. These are handled by provider plugins.
+The application is agnostic of the user's "address" and the OTP / verification codes. These are handled by providers.
 
 - Addresses are strings, for example, e-mail IDs, phone numbers, bank account numbers etc.
 - OTPs are also just strings, for instance, 6 digit codes sent as SMSes or a penny value dropped to a bank account.
 
-The gateway sends the OTP value to the user's address using a provider and the user then has to read the OTP and enter it on the gateway's web view to complete the verification.
+The gateway sends the OTP value to the user's address using a provider (an upstream that takes the OTP + message and sends it to the user) and the user then has to read the OTP and enter it on the gateway's web view to complete the verification.
 
-## Providers
+### Built-in providers
+- smtp
+- AWS Pinpoint SMS
+- Kaleyra (India) SMS
 
-Providers are [Go plugins](https://golang.org/pkg/plugin/) that can be dynamically loaded into the gateway. An SMTP provider is bundled that enables e-mail address verifications by sending an OTP / verification link to user's e-mails. Refer to `providers/smtp/smtp.go`. To write a custom provider, copy the `smtp` plugin and change the methods to conform to the `otpgateway.Provider` interface and compile it as a go plugin (see the `Makefile`).
 
-- solsms   - SMS provider for Solutions Infini (Indian gateway).
-- pinpoint - SMS provider by AWS.
+## Webhook providers
+Any external provider can be integrated by defining one or more webhook providers in the config. A JSON payload is posted to the provider whenever an OTP is generated.
+
 
 # Usage
 
@@ -34,8 +37,9 @@ Download the latest release from the [releases page](https://github.com/knadh/ot
 
 The best approach is to clone this repository and run `make deps && make build`. To run, OTP Gateway requires a Redis connection.
 
-- Copy config.toml.sample to config.toml and edit the configuration
-- Run `./otpgateway --prov smtp.prov`
+- Copy config.sample.toml to config.toml and edit the configuration
+- Run `./otpgateway`
+- Refer to the API reference below to send OTPs.
 
 ### Built in UI
 

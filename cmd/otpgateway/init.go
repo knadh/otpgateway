@@ -51,8 +51,6 @@ func initConfig() {
 	}
 	f.StringSlice("config", []string{"config.toml"},
 		"Path to one or more TOML config files to load in order")
-	f.StringSlice("prov", []string{"smtp.prov"},
-		"Path to a provider plugin. Can specify multiple values.")
 	f.Bool("version", false, "Show build version")
 	f.Parse(os.Args[1:])
 

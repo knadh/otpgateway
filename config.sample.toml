@@ -83,7 +83,7 @@ template = "static/sms.txt"
 template_type = "text"
 
 # Upstream provider config.
-sender_id = ""
+sender = ""
 api_key = ""
 
 max_conns = 10
@@ -102,6 +102,7 @@ access_key = ""
 secret_key = ""
 region = ""
 sms_sender_id = ""
+sms_entity_id = ""
 sms_template_id = ""
 sms_message_type = "TRANSACTIONAL"
 

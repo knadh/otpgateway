@@ -76,7 +76,7 @@ tls_type = "none" # none | STARTTLS | TLS
 tls_skip_verify = false
 
 
-[providers.kalyera]
+[providers.kaleyra]
 enabled = false
 subject = "Verification"
 template = "static/sms.txt"

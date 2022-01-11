@@ -2,7 +2,7 @@
 
 # OTP Gateway
 
-OTP (One Time Password) Gateway is a standalone web server that provides a central gateway to verify user addresses such as e-mails and phone numbers, and to send 2FA confirmations to such addresses. An e-mail / SMTP verification provider is bundled. It is easy to write custom providers as Go plugins (like a Twilio plugin to send out verification codes via SMS).
+OTP (One Time Password) Gateway is a standalone web server that provides a central gateway to verify user addresses such as e-mails and phone numbers, and to send 2FA confirmations to such addresses.
 
 - Use the built in web UI to easily integrate with existing applications.
 - Use the HTTP/JSON APIs to build your own UI.
@@ -12,7 +12,18 @@ OTP (One Time Password) Gateway is a standalone web server that provides a centr
 ![otp](https://user-images.githubusercontent.com/547147/51735115-7d4a5d00-20ac-11e9-8a86-3985665a7820.png)
 ![email-otp](https://user-images.githubusercontent.com/547147/51734344-407d6680-20aa-11e9-8e8e-03db29d8f900.png)
 
-## How does it work?
+
+### Built-in providers
+- SMTP
+- AWS Pinpoint SMS
+- Kaleyra SMS, WhatsApp
+
+
+### Webhook providers
+Any external provider can be integrated by defining one or more [webhook providers in the config](https://github.com/knadh/otpgateway/blob/745ce8fb9d3491a8774d5290006691fded560fa4/config.sample.toml#L141). A JSON payload is posted to the webhook endpoint whenever an OTP is generated.
+
+
+# How does it work?
 
 The application is agnostic of the user's "address" and the OTP / verification codes. These are handled by providers.
 
@@ -20,16 +31,6 @@ The application is agnostic of the user's "address" and the OTP / verification c
 - OTPs are also just strings, for instance, 6 digit codes sent as SMSes or a penny value dropped to a bank account.
 
 The gateway sends the OTP value to the user's address using a provider (an upstream that takes the OTP + message and sends it to the user) and the user then has to read the OTP and enter it on the gateway's web view to complete the verification.
-
-### Built-in providers
-- smtp
-- AWS Pinpoint SMS
-- Kaleyra SMS, WhatsApp
-
-
-## Webhook providers
-Any external provider can be integrated by defining one or more [webhook providers in the config](https://github.com/knadh/otpgateway/blob/745ce8fb9d3491a8774d5290006691fded560fa4/config.sample.toml#L141). A JSON payload is posted to the webhook endpoint whenever an OTP is generated.
-
 
 # Usage
 
@@ -163,7 +164,7 @@ or an error such as
 
 # Javascript plugin
 
-The gateway comes with a Javascript plugin that enables easy integration of the verification flow into existing applications. Once a server side call to generate an OTP is made and a namespace and id are obtained, calling `OTPGateway()` opens the verification UI in a modal popup, and once the user finishes the verification, you get a JS callback.
+The gateway comes with a Javascript plugin that enables easy integration of the verification UI into existing applications. Once a server side call to generate an OTP is made and a namespace and id are obtained, calling `OTPGateway()` opens the verification UI in a modal popup. Upon completion of verification by the user, a callback is triggered.
 
 ```html
 <!-- The id #otpgateway-script is required for the script to work //-->
@@ -172,7 +173,7 @@ The gateway comes with a Javascript plugin that enables easy integration of the 
   src="http://localhost:9000/static/otp.js"
 ></script>
 <script>
-  // 1. Make an Ajax call to the server to generate and send an OTP and return the
+  // 1. Make a call to the server to generate and send an OTP and return the
   // the :namespace and :id for the OTP.
   // 2. Invoke the verification UI for the user with the namespace and id values,
   // and a callback which is triggered when the user finishes the flow.

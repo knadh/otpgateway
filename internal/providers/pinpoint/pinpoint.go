@@ -42,6 +42,7 @@ type Config struct {
 	Region           string `json:"region"`
 	SMSSenderID      string `json:"sms_sender_id"`
 	SMSMessageType   string `json:"sms_message_type"`
+	SMSEntityID      string `json:"sms_entity_id"`
 	SMSTemplateID    string `json:"sms_template_id"`
 	DefaultPhoneCode string `json:"default_phone_code"`
 
@@ -149,6 +150,7 @@ func (p *PinpointSMS) Push(otp models.OTP, subject string, body []byte) error {
 					Body:        &msg,
 					MessageType: &p.cfg.SMSMessageType,
 					SenderId:    &p.cfg.SMSSenderID,
+					EntityId:    &p.cfg.SMSEntityID,
 					TemplateId:  &p.cfg.SMSTemplateID,
 				},
 			},

@@ -4,25 +4,10 @@ VERSION := $(shell git describe --abbrev=1)
 BUILDSTR := ${VERSION} (build "\\\#"${LAST_COMMIT} $(shell date '+%Y-%m-%d %H:%M:%S'))
 
 BIN := otpgateway
-SMTP_BIN := smtp.prov
-SOLSMS_BIN := solsms.prov
-PINPOINT_BIN := pinpoint.prov
 STATIC := static/
-
-CI_REGISTRY_IMAGE := kailashnadh/otpgateway
-CI_COMMIT_TAG := $(shell git tag | tail -n 1)
 
 .PHONY: build
 build:
-# 	# Compile the smtp provider plugin.
-# 	go build -ldflags="-s -w" -buildmode=plugin -o ${SMTP_BIN} provider/internal/smtp/smtp.go
-
-# 	# Compile the solsms provider plugin.
-# 	go build -ldflags="-s -w" -buildmode=plugin -o ${SOLSMS_BIN} provider/internal/solsms/solsms.go
-
-# 	# Compile the pinpoint provider plugin.
-# 	go build -ldflags="-s -w" -buildmode=plugin -o ${PINPOINT_BIN} provider/internal/pinpoint/pinpoint.go
-
 	# Compile the main application.
 	go build -o ${BIN} -ldflags="-s -w -X 'main.buildString=${BUILDSTR}'" cmd/otpgateway/*.go
 	stuffbin -a stuff -in ${BIN} -out ${BIN} ${STATIC}
@@ -39,10 +24,8 @@ clean:
 	go clean
 	- rm -f ${BIN} ${SMTP_BIN}
 
-.PHONY: docker-build
-docker-build:
-	docker build -t ${CI_REGISTRY_IMAGE}:${CI_COMMIT_TAG} .
-
-.PHONY: docker-push
-docker-push:
-	docker push ${CI_REGISTRY_IMAGE}:${CI_COMMIT_TAG}
+# pack-releases runns stuffbin packing on the given binary. This is used
+# in the .goreleaser post-build hook.
+.PHONY: pack-bin
+pack-bin: build $(BIN) $(STUFFBIN)
+	$(STUFFBIN) -a stuff -in ${BIN} -out ${BIN} ${STATIC}

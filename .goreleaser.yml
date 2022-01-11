@@ -1,6 +1,16 @@
 # .goreleaser.yml
+
+env:
+  - GO111MODULE=on
+  - CGO_ENABLED=0
+
+before:
+  hooks:
+  - make build
+
 builds:
   - binary: otpgateway
+    id: otpgateway
     main: ./cmd/otpgateway
     goos:
       - darwin
@@ -10,16 +20,32 @@ builds:
       - netbsd
     goarch:
       - amd64
-
-before:
-  hooks:
-  - make build
+    
+    hooks:
+      # stuff executables with static assets.
+      post: make pack-bin BIN={{ .Path }}
 
 archives:
   - format: tar.gz
     files:
       - static/smtp.tpl
-      - config.toml.sample
-      - smtp.prov
+      - config.sample.toml
       - README.md
       - LICENSE
+
+dockers:
+  -
+    id: otpgateway
+    goos: linux
+    goarch: amd64
+    ids:
+      - otpgateway
+    image_templates:
+      - "kailashnadh/otpgateway:{{ .Tag }}"
+      - "kailashnadh/otpgateway:latest"
+    skip_push: false
+    dockerfile: Dockerfile
+    use: docker
+    extra_files:
+      - config.sample.toml
+      - static/smtp.tpl

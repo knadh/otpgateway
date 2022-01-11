@@ -95,7 +95,7 @@ func handleHealthCheck(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err := app.store.Ping(); err != nil {
-		sendErrorResponse(w, "unable to reach store", http.StatusServiceUnavailable, nil)
+		sendErrorResponse(w, "Unable to reach store.", http.StatusServiceUnavailable, nil)
 		return
 	}
 
@@ -123,7 +123,7 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 	// Get the provider.
 	p, ok := app.providers[provider]
 	if !ok {
-		sendErrorResponse(w, "unknown provider", http.StatusBadRequest, nil)
+		sendErrorResponse(w, "Unknown provider.", http.StatusBadRequest, nil)
 		return
 	}
 
@@ -132,7 +132,7 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 	// collection UI.
 	if to != "" {
 		if err := p.provider.ValidateAddress(to); err != nil {
-			sendErrorResponse(w, fmt.Sprintf("invalid `to` address: %v", err),
+			sendErrorResponse(w, fmt.Sprintf("Invalid `to` address: %v", err),
 				http.StatusBadRequest, nil)
 			return
 		}
@@ -143,8 +143,7 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 	if rawTTL != "" {
 		v, err := strconv.Atoi(rawTTL)
 		if err != nil || v < 1 {
-			sendErrorResponse(w, "invalid `ttl` value",
-				http.StatusBadRequest, nil)
+			sendErrorResponse(w, "Invalid `ttl` value.", http.StatusBadRequest, nil)
 			return
 		}
 		ttl = time.Second * time.Duration(v)
@@ -154,8 +153,7 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 	if rawMaxAttempts != "" {
 		v, err := strconv.Atoi(rawMaxAttempts)
 		if err != nil || v < 1 {
-			sendErrorResponse(w, "invalid `max_attempts` value",
-				http.StatusBadRequest, nil)
+			sendErrorResponse(w, "Invalid `max_attempts` value.", http.StatusBadRequest, nil)
 			return
 		}
 		maxAttempts = v
@@ -174,7 +172,7 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 
 	// If there is no incoming ID, generate a random ID.
 	if len(id) < 6 {
-		sendErrorResponse(w, "ID should be min 6 chars", http.StatusBadRequest, nil)
+		sendErrorResponse(w, "ID should be min 6 chars.", http.StatusBadRequest, nil)
 		return
 	} else if id == "" {
 		if i, err := generateRandomString(32, alphaNumChars); err != nil {
@@ -279,7 +277,7 @@ func handleCheckOTPStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sendErrorResponse(w, "OTP not verified", http.StatusBadRequest, nil)
+	sendErrorResponse(w, "OTP not verified.", http.StatusBadRequest, nil)
 }
 
 // handleVerifyOTP checks the user input against a stored OTP.

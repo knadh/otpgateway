@@ -29,3 +29,13 @@ clean:
 .PHONY: pack-bin
 pack-bin: build $(BIN) $(STUFFBIN)
 	$(STUFFBIN) -a stuff -in ${BIN} -out ${BIN} ${STATIC}
+
+# Use goreleaser to do a dry run producing local builds.
+.PHONY: release-dry
+release-dry:
+	goreleaser --parallelism 1 --rm-dist --snapshot --skip-validate --skip-publish
+
+# Use goreleaser to build production releases and publish them.
+.PHONY: release
+release:
+	goreleaser --parallelism 1 --rm-dist --skip-validate

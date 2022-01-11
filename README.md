@@ -24,22 +24,20 @@ The gateway sends the OTP value to the user's address using a provider (an upstr
 ### Built-in providers
 - smtp
 - AWS Pinpoint SMS
-- Kaleyra (India) SMS
+- Kaleyra SMS, WhatsApp
 
 
 ## Webhook providers
-Any external provider can be integrated by defining one or more webhook providers in the config. A JSON payload is posted to the provider whenever an OTP is generated.
+Any external provider can be integrated by defining one or more [webhook providers in the config](https://github.com/knadh/otpgateway/blob/745ce8fb9d3491a8774d5290006691fded560fa4/config.sample.toml#L141). A JSON payload is posted to the webhook endpoint whenever an OTP is generated.
 
 
 # Usage
 
-Download the latest release from the [releases page](https://github.com/knadh/otpgateway/releases). Note that Go plugins require cgo, the libc version linked in the binaries may be incompatible with your system.
+Download the latest release from the [releases page](https://github.com/knadh/otpgateway/releases). 
 
-The best approach is to clone this repository and run `make deps && make build`. To run, OTP Gateway requires a Redis connection.
-
-- Copy config.sample.toml to config.toml and edit the configuration
+- Copy config.sample.toml to config.toml and edit the configuration.
 - Run `./otpgateway`
-- Refer to the API reference below to send OTPs.
+- Refer to the [API reference](#user-content-api-reference) to send OTPs.
 
 ### Built in UI
 

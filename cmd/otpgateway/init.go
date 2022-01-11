@@ -83,9 +83,10 @@ func initConfig() {
 func initProviders(ko *koanf.Koanf) map[string]*provider {
 	// Reserved names for in-built providers.
 	bundled := map[string]bool{
-		"smtp":         true,
-		"pinpoint_sms": true,
-		"kaleyra":      true,
+		"smtp":             true,
+		"pinpoint_sms":     true,
+		"kaleyra_sms":      true,
+		"kaleyra_whatsapp": true,
 	}
 
 	out := make(map[string]*provider)
@@ -128,20 +129,29 @@ func initProviders(ko *koanf.Koanf) map[string]*provider {
 	}
 
 	// Kaleyra.
-	if ko.Bool("providers.kaleyra.enabled") {
+	for _, k := range []string{"kaleyra_sms", "kaleyra_whatsapp"} {
+		if !ko.Bool(fmt.Sprintf("providers.%s.enabled", k)) {
+			continue
+		}
+
 		var cfg kaleyra.Config
-		if err := ko.UnmarshalWithConf("providers.kaleyra", &cfg, koanf.UnmarshalConf{Tag: "json"}); err != nil {
-			lo.Fatalf("error unmarshalling provider.kaleyra config: %v", err)
+		if err := ko.UnmarshalWithConf(fmt.Sprintf("providers.%s", k), &cfg, koanf.UnmarshalConf{Tag: "json"}); err != nil {
+			lo.Fatalf("error unmarshalling providers.%s config: %v", k, err)
 		}
 
-		p, err := kaleyra.New(cfg)
+		typ := kaleyra.ChannelSMS
+		if k == "kaleyra_whatsapp" {
+			typ = kaleyra.ChannelWhatsapp
+		}
+
+		p, err := kaleyra.New(typ, cfg)
 		if err != nil {
-			lo.Fatalf("error initializing kaleyra provider: %v", err)
+			lo.Fatalf("error initializing %s provider: %v", k, err)
 		}
 
-		out["kaleyra"] = &provider{
+		out[k] = &provider{
 			provider: p,
-			tpl:      initProviderTpl(ko.String("providers.kaleyra.subject"), ko.String("providers.kaleyra.template")),
+			tpl:      initProviderTpl(ko.String(fmt.Sprintf("providers.%s.subject", k)), ko.String(fmt.Sprintf("providers.%s.template", k))),
 		}
 	}
 

@@ -1,52 +1,53 @@
 package kaleyra
 
 import (
-	"encoding/json"
+	"bytes"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/knadh/otpgateway/v3/internal/models"
 )
 
 const (
+	ChannelSMS      = "SMS"
+	ChannelWhatsapp = "WhatsApp"
+
 	providerID    = "kaleyra"
-	channelName   = "SMS"
 	addressName   = "Mobile number"
 	maxAddresslen = 10
 	maxOTPlen     = 6
-	apiURL        = "https://api-alerts.kaleyra.com/v4/"
-	statusOK      = "OK"
+	apiURL        = "https://api.kaleyra.io/v1/%s/messages"
 )
 
 var reNum = regexp.MustCompile(`\+?([0-9]){8,15}`)
 
 // Kaleyra is the default representation of the Kaleyra interface.
 type Kaleyra struct {
-	cfg Config
-	h   *http.Client
+	channel string
+	apiURL  string
+	cfg     Config
+	h       *http.Client
 }
 
 type Config struct {
-	APIKey   string        `json:"api_key"`
-	Sender   string        `json:"sender"`
-	Timeout  time.Duration `json:"timeout"`
-	MaxConns int           `json:"max_conns"`
+	APIKey           string        `json:"api_key"`
+	SID              string        `json:"sid"`
+	Sender           string        `json:"sender"`
+	TemplateName     string        `json:"template_name"`
+	DefaultPhoneCode string        `json:"default_phone_code"`
+	Timeout          time.Duration `json:"timeout"`
+	MaxConns         int           `json:"max_conns"`
 }
 
-// apiResp represents the response from kaleyra API.
-type apiResp struct {
-	Status  string      `json:"status"`
-	Message string      `json:"message"`
-	Data    interface{} `json:"data"`
-}
-
-// New implements a Kaleyra SMS provider.
-func New(cfg Config) (*Kaleyra, error) {
+// New implements a Kaleyra provider.
+// type = SMS | WhatsApp
+func New(channel string, cfg Config) (*Kaleyra, error) {
 	if cfg.APIKey == "" || cfg.Sender == "" {
 		return nil, errors.New("invalid APIKey or Sender")
 	}
@@ -57,7 +58,9 @@ func New(cfg Config) (*Kaleyra, error) {
 	}
 
 	return &Kaleyra{
-		cfg: cfg,
+		channel: channel,
+		apiURL:  fmt.Sprintf(apiURL, cfg.SID),
+		cfg:     cfg,
 		h: &http.Client{
 			Timeout: cfg.Timeout,
 			Transport: &http.Transport{
@@ -75,7 +78,7 @@ func (k *Kaleyra) ID() string {
 
 // ChannelName returns the Provider's name.
 func (k *Kaleyra) ChannelName() string {
-	return channelName
+	return k.channel
 }
 
 // AddressName returns the e-mail Provider's address name.
@@ -105,15 +108,31 @@ func (k *Kaleyra) ValidateAddress(to string) error {
 
 // Push pushes out an SMS.
 func (k *Kaleyra) Push(otp models.OTP, subject string, body []byte) error {
-	var p = url.Values{}
-	p.Set("method", "sms")
-	p.Set("api_key", k.cfg.APIKey)
-	p.Set("sender", k.cfg.Sender)
-	p.Set("to", otp.To)
-	p.Set("message", string(body))
+	p := url.Values{}
+	p.Set("to", k.sanitizePhone(otp.To))
+
+	if k.channel == ChannelSMS {
+		p.Set("type", "OTP")
+		p.Set("sender", k.cfg.Sender)
+		p.Set("body", string(body))
+	} else {
+		p.Set("type", "template")
+		p.Set("channel", "whatsapp")
+		p.Set("from", k.cfg.Sender)
+		p.Set("template_name", k.cfg.TemplateName)
+		p.Set("params", fmt.Sprintf(`"%s"`, otp.OTP))
+	}
 
 	// Make the request.
-	resp, err := k.h.PostForm(apiURL, p)
+	req, err := http.NewRequest(http.MethodPost, k.apiURL, bytes.NewReader([]byte(p.Encode())))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Add("api-key", k.cfg.APIKey)
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := k.h.Do(req)
 	if err != nil {
 		return err
 	}
@@ -125,15 +144,11 @@ func (k *Kaleyra) Push(otp models.OTP, subject string, body []byte) error {
 		return err
 	}
 
-	// We now unmarshal the body.
-	r := apiResp{}
-	if err := json.Unmarshal(b, &r); err != nil {
-		return err
+	if resp.StatusCode == http.StatusAccepted || resp.StatusCode == http.StatusOK {
+		return nil
 	}
-	if r.Status != statusOK {
-		return errors.New(r.Message)
-	}
-	return nil
+
+	return errors.New(string(b))
 }
 
 // MaxAddressLen returns the maximum allowed length for the mobile number.
@@ -149,4 +164,16 @@ func (k *Kaleyra) MaxOTPLen() int {
 // MaxBodyLen returns the max permitted body size.
 func (k *Kaleyra) MaxBodyLen() int {
 	return 140
+}
+
+func (k *Kaleyra) sanitizePhone(phone string) string {
+	phone = strings.TrimSpace(phone)
+
+	if strings.HasPrefix(phone, "+") {
+		return phone
+	} else if strings.HasPrefix(phone, "00") {
+		return "+" + phone[2:]
+	}
+
+	return k.cfg.DefaultPhoneCode + phone
 }

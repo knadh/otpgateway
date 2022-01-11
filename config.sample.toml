@@ -76,25 +76,47 @@ tls_type = "none" # none | STARTTLS | TLS
 tls_skip_verify = false
 
 
-[providers.kaleyra]
+
+[providers.kaleyra_sms]
 enabled = false
-subject = "Verification"
+subject = ""
 template = "static/sms.txt"
-template_type = "text"
 
 # Upstream provider config.
-sender = ""
+sender = "ZRODHA"
+sid = ""
 api_key = ""
+default_phone_code = "+91"
 
 max_conns = 10
 request_timeout = "5s"
+
+
+
+[providers.kaleyra_whatsapp]
+enabled = false
+subject = ""
+template = ""
+
+# Upstream provider config.
+sender = ""
+sid = ""
+api_key = ""
+default_phone_code = "+91"
+
+# Name of the template registered with WhatsApp. It should only have
+# one param {{$1}}, which will be replaced by the OTP value.
+template_name = "otp"
+
+max_conns = 10
+request_timeout = "5s"
+
 
 
 [providers.pinpoint_sms]
 enabled = false
 subject = "Verification"
 template = "static/sms.txt"
-template_type = "text"
 
 # Upstream provider config.
 application_id = ""

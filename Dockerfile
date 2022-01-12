@@ -1,4 +1,5 @@
 FROM ubuntu:20.04
+RUN apt update && apt install -y ca-certificates
 WORKDIR /app
 COPY otpgateway .
 COPY config.sample.toml config.toml

@@ -3,26 +3,30 @@ LAST_COMMIT_DATE := $(shell git show -s --format=%ci ${LAST_COMMIT})
 VERSION := $(shell git describe --abbrev=1)
 BUILDSTR := ${VERSION} (build "\\\#"${LAST_COMMIT} $(shell date '+%Y-%m-%d %H:%M:%S'))
 
+STUFFBIN ?= $(GOPATH)/bin/stuffbin
+
 BIN := otpgateway
 STATIC := static/
 
-.PHONY: build
-build:
-	# Compile the main application.
-	go build -o ${BIN} -ldflags="-s -w -X 'main.buildString=${BUILDSTR}'" cmd/otpgateway/*.go
-	stuffbin -a stuff -in ${BIN} -out ${BIN} ${STATIC}
+$(STUFFBIN):
+	go install github.com/knadh/stuffbin/...
 
-.PHONY: deps
-deps:
-	go get -u github.com/knadh/stuffbin/...
+.PHONY: build
+build: $(BIN)
+
+$(BIN): $(shell find . -type f -name "*.go")
+	CGO_ENABLED=0 go build -o ${BIN} -ldflags="-s -w -X 'main.buildString=${BUILDSTR}'" ./cmd/otpgateway/*.go
+
+.PHONY: run
+run:
+	CGO_ENABLED=0 go run -ldflags="-s -w -X 'main.buildString=${BUILDSTR}'" ./cmd/otpgateway
+
+.PHONY: dist
+dist: $(STUFFBIN) build pack-bin
 
 .PHONY: test
 test:
 	go test ./...
-
-clean:
-	go clean
-	- rm -f ${BIN} ${SMTP_BIN}
 
 # pack-releases runns stuffbin packing on the given binary. This is used
 # in the .goreleaser post-build hook.

@@ -11,7 +11,7 @@ var (
 	// ErrNotExist is thrown when an OTP (requested by namespace / ID)
 	// does not exist.
 	ErrNotExist = errors.New("the OTP does not exist")
-	// ErrNotExist is thrown when an OTP (requested by namespace / ID)
+	// ErrTooManyAttempts is thrown when an OTP (requested by namespace / ID)
 	// strictly exceeds the maximum number of attempts.
 	ErrTooManyAttempts = errors.New("too many attempts")
 )

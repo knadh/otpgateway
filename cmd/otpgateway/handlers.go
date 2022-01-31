@@ -310,7 +310,7 @@ func handleVerifyOTP(w http.ResponseWriter, r *http.Request) {
 		if err == store.ErrTooManyAttempts {
 			code = http.StatusTooManyRequests
 			errMsg := fmt.Sprintf("Too many attempts. Please retry after %0.f seconds.",
-			out.TTL.Seconds())
+				out.TTL.Seconds())
 			err := errors.New(errMsg)
 			sendErrorResponse(w, err.Error(), code, nil)
 			return
@@ -360,7 +360,7 @@ func handleOTPView(w http.ResponseWriter, r *http.Request) {
 
 	isOtpLocked := false
 	// Attempts are maxed out and locked.
-	if action == actCheck  {
+	if action == actCheck {
 		if otpErr == store.ErrTooManyAttempts {
 			isOtpLocked = true
 		}
@@ -547,7 +547,7 @@ func verifyOTP(namespace, id, otp string, deleteOnVerify bool, app *App) (models
 	if out.Attempts > out.MaxAttempts {
 		return out, store.ErrTooManyAttempts
 	}
-	
+
 	// Final attempt with incorrect OTP
 	if out.Attempts == out.MaxAttempts && out.OTP != otp {
 		return out, store.ErrTooManyAttempts

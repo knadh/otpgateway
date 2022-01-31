@@ -6,7 +6,6 @@ import (
 	"github.com/knadh/otpgateway/v3/internal/models"
 )
 
-
 var (
 	// ErrNotExist is thrown when an OTP (requested by namespace / ID)
 	// does not exist.

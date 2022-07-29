@@ -3,7 +3,7 @@ package store
 import (
 	"errors"
 
-	"github.com/knadh/otpgateway/v3/internal/models"
+	"github.com/knadh/otpgateway/v3/pkg/models"
 )
 
 // ErrNotExist is thrown when an OTP (requested by namespace / ID)

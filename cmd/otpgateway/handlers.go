@@ -15,8 +15,8 @@ import (
 	"time"
 
 	"github.com/go-chi/chi"
-	"github.com/knadh/otpgateway/v3/internal/models"
 	"github.com/knadh/otpgateway/v3/internal/store"
+	"github.com/knadh/otpgateway/v3/pkg/models"
 	"github.com/zerodha/logf"
 )
 

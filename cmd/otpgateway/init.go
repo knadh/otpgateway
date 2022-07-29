@@ -17,10 +17,20 @@ import (
 	"github.com/knadh/otpgateway/v3/internal/providers/pinpoint"
 	"github.com/knadh/otpgateway/v3/internal/providers/smtp"
 	"github.com/knadh/otpgateway/v3/internal/providers/webhook"
+	"github.com/zerodha/logf"
 
 	"github.com/knadh/stuffbin"
 	flag "github.com/spf13/pflag"
 )
+
+// initLogger initializes logger instance.
+func initLogger(debug bool) logf.Logger {
+	opts := logf.Opts{EnableCaller: true}
+	if debug {
+		opts.Level = logf.DebugLevel
+	}
+	return logf.New(opts)
+}
 
 type constants struct {
 	OtpTTL         time.Duration

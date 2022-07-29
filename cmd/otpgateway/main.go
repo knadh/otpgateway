@@ -13,6 +13,7 @@ import (
 	"github.com/knadh/otpgateway/v3/internal/store"
 	"github.com/knadh/otpgateway/v3/internal/store/redis"
 	"github.com/knadh/stuffbin"
+	"github.com/zerodha/logf"
 )
 
 // App is the global app context that groups the necessary
@@ -21,7 +22,7 @@ type App struct {
 	store        store.Store
 	providers    map[string]*provider
 	providerTpls map[string]*providerTpl
-	lo           *log.Logger
+	lo           logf.Logger
 	tpl          *template.Template
 	fs           stuffbin.FileSystem
 	constants    constants
@@ -41,7 +42,7 @@ func main() {
 	app := &App{
 		fs:        initFS(os.Args[0]),
 		providers: initProviders(ko),
-		lo:        lo,
+		lo:        initLogger(ko.Bool("app.enable_debug_logs")),
 
 		constants: constants{
 			OtpTTL:         ko.MustDuration("app.otp_ttl") * time.Second,
@@ -60,13 +61,13 @@ func main() {
 	// Compile static templates.
 	tpl, err := stuffbin.ParseTemplatesGlob(nil, app.fs, "/static/*.html")
 	if err != nil {
-		lo.Fatalf("error compiling template: %v", err)
+		app.lo.Fatal("error compiling template", "error", err)
 	}
 	app.tpl = tpl
 
 	authCreds := initAuth()
 	if len(authCreds) == 0 {
-		lo.Fatal("no auth entries found in config")
+		app.lo.Fatal("no auth entries found in config")
 	}
 
 	// Register HTTP handlers.
@@ -98,8 +99,8 @@ func main() {
 		Handler:      r,
 	}
 
-	lo.Printf("starting on %s", srv.Addr)
+	app.lo.Info("starting server", "address", srv.Addr)
 	if err := srv.ListenAndServe(); err != nil {
-		lo.Fatalf("couldn't start server: %v", err)
+		app.lo.Fatal("couldn't start server", "error", err)
 	}
 }

@@ -13,7 +13,7 @@ require (
 	github.com/knadh/stuffbin v1.1.0
 	github.com/mitchellh/mapstructure v1.4.3 // indirect
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.8.0
 	github.com/yuin/gopher-lua v0.0.0-20190125051437-7b9317363aa9 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
+	github.com/zerodha/logf v0.5.5
 )

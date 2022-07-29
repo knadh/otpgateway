@@ -105,7 +105,7 @@ func init() {
 
 	// Dummy app.
 	app := &App{
-		lo:        lo,
+		lo:        initLogger(true),
 		providers: map[string]*provider{dummyProvider: &provider{provider: &dummyProv{}}},
 		providerTpls: map[string]*providerTpl{
 			dummyProvider: &providerTpl{

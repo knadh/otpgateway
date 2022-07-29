@@ -17,6 +17,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/knadh/otpgateway/v3/internal/models"
 	"github.com/knadh/otpgateway/v3/internal/store"
+	"github.com/zerodha/logf"
 )
 
 const (
@@ -176,7 +177,7 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	} else if id == "" {
 		if i, err := generateRandomString(32, alphaNumChars); err != nil {
-			app.lo.Printf("error generating ID: %v", err)
+			app.lo.Error("error generating ID", "error", err)
 			sendErrorResponse(w, "Error generating ID.", http.StatusInternalServerError, nil)
 			return
 		} else {
@@ -188,7 +189,7 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 	if otpVal == "" {
 		o, err := generateRandomString(p.provider.MaxOTPLen(), numChars)
 		if err != nil {
-			app.lo.Printf("error generating OTP: %v", err)
+			app.lo.Error("error generating OTP", "error", err)
 			sendErrorResponse(w, "Error generating OTP.", http.StatusInternalServerError, nil)
 			return
 		}
@@ -198,7 +199,7 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 	// Check if the OTP attempts have exceeded the quota.
 	otp, err := app.store.Check(namespace, id, false)
 	if err != nil && err != store.ErrNotExist {
-		app.lo.Printf("error checking OTP status: %v", err)
+		app.lo.Error("error checking OTP status", "error", err)
 		sendErrorResponse(w, "Error checking OTP status.", http.StatusBadRequest, nil)
 		return
 	}
@@ -228,15 +229,15 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 		MaxAttempts: maxAttempts,
 	})
 	if err != nil {
-		app.lo.Printf("error setting OTP: %v", err)
+		app.lo.Error("error setting OTP", "error", err)
 		sendErrorResponse(w, "Error setting OTP.", http.StatusInternalServerError, nil)
 		return
 	}
 
 	// Push the OTP out.
 	if to != "" {
-		if err := push(newOTP, p, app.constants.RootURL); err != nil {
-			app.lo.Printf("error sending OTP: %s: %v", p.provider.ID(), err)
+		if err := push(app.lo, newOTP, p, app.constants.RootURL); err != nil {
+			app.lo.Error("error sending OTP", "error", err, "provider", p.provider.ID())
 			sendErrorResponse(w, "Error sending OTP.", http.StatusInternalServerError, nil)
 			return
 		}
@@ -267,7 +268,7 @@ func handleCheckOTPStatus(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		app.lo.Printf("error checking OTP: %v", err)
+		app.lo.Error("error checking OTP", "error", err)
 		sendErrorResponse(w, err.Error(), http.StatusBadRequest, nil)
 		return
 	}
@@ -392,8 +393,8 @@ func handleOTPView(w http.ResponseWriter, r *http.Request) {
 	// It's a resend request.
 	if action == actResend {
 		msg = "OTP resent"
-		if err := push(out, pro, app.constants.RootURL); err != nil {
-			app.lo.Printf("error sending OTP: %s: %v", pro.provider.ID(), err)
+		if err := push(app.lo, out, pro, app.constants.RootURL); err != nil {
+			app.lo.Error("error sending OTP", "error", err, "provider", pro.provider.ID())
 			otpErr = errors.New("error resending OTP.")
 		}
 	}
@@ -457,7 +458,7 @@ func handleAddressView(w http.ResponseWriter, r *http.Request) {
 					Please re-initiate the verification.`,
 			})
 		} else {
-			app.lo.Printf("error checking OTP: %v", err)
+			app.lo.Error("error checking OTP", "error", err)
 			app.tpl.ExecuteTemplate(w, "message", webviewTpl{App: app.constants,
 				Title:       "Internal error",
 				Description: `Please try later.`,
@@ -491,8 +492,8 @@ func handleAddressView(w http.ResponseWriter, r *http.Request) {
 			msg = err.Error()
 		} else {
 			out.To = to
-			if err := push(out, pro, app.constants.RootURL); err != nil {
-				app.lo.Printf("error sending OTP: %s: %v", pro.provider.ID(), err)
+			if err := push(app.lo, out, pro, app.constants.RootURL); err != nil {
+				app.lo.Error("error sending OTP", "error", err, "provider", pro.provider.ID())
 				msg = "error sending OTP"
 			} else {
 				http.Redirect(w, r, fmt.Sprintf(uriViewOTP, out.Namespace, out.ID),
@@ -519,7 +520,7 @@ func verifyOTP(namespace, id, otp string, deleteOnVerify bool, app *App) (models
 	out, err := app.store.Check(namespace, id, true)
 	if err != nil {
 		if err != store.ErrNotExist {
-			app.lo.Printf("error checking OTP: %v", err)
+			app.lo.Error("error checking OTP", "error", err)
 			return out, err
 		}
 		return out, errors.New("error checking OTP.")
@@ -602,7 +603,7 @@ func isLocked(otp models.OTP) bool {
 }
 
 // push compiles a message template and pushes it to the provider.
-func push(otp models.OTP, p *provider, rootURL string) error {
+func push(lo logf.Logger, otp models.OTP, p *provider, rootURL string) error {
 	var (
 		subj = &bytes.Buffer{}
 		out  = &bytes.Buffer{}
@@ -630,6 +631,7 @@ func push(otp models.OTP, p *provider, rootURL string) error {
 		}
 	}
 
+	lo.Debug("sending otp", "to", otp.To, "provider", p.provider.ID(), "namespace", otp.Namespace)
 	return p.provider.Push(otp, subj.String(), out.Bytes())
 }
 

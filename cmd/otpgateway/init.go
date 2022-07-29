@@ -12,11 +12,11 @@ import (
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/providers/posflag"
-	"github.com/knadh/otpgateway/v3/internal/models"
 	"github.com/knadh/otpgateway/v3/internal/providers/kaleyra"
 	"github.com/knadh/otpgateway/v3/internal/providers/pinpoint"
 	"github.com/knadh/otpgateway/v3/internal/providers/smtp"
 	"github.com/knadh/otpgateway/v3/internal/providers/webhook"
+	"github.com/knadh/otpgateway/v3/pkg/models"
 	"github.com/zerodha/logf"
 
 	"github.com/knadh/stuffbin"

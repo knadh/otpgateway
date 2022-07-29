@@ -16,8 +16,8 @@ import (
 
 	"github.com/alicebob/miniredis"
 	"github.com/go-chi/chi"
-	"github.com/knadh/otpgateway/v3/internal/models"
 	"github.com/knadh/otpgateway/v3/internal/store/redis"
+	"github.com/knadh/otpgateway/v3/pkg/models"
 	"github.com/stretchr/testify/assert"
 )
 

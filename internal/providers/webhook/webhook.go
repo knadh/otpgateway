@@ -13,7 +13,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/knadh/otpgateway/v3/internal/models"
+	"github.com/knadh/otpgateway/v3/pkg/models"
 )
 
 // Webhook is the default representation of the Webhook interface.

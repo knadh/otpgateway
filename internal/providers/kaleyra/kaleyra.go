@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/knadh/otpgateway/v3/internal/models"
+	"github.com/knadh/otpgateway/v3/pkg/models"
 )
 
 const (

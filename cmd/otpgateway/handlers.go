@@ -471,6 +471,7 @@ func handleAddressView(w http.ResponseWriter, r *http.Request) {
 	if out.To != "" {
 		http.Redirect(w, r, fmt.Sprintf(uriViewOTP, out.Namespace, out.ID),
 			http.StatusFound)
+		return
 	}
 
 	// Get the provider.

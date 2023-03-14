@@ -172,10 +172,7 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// If there is no incoming ID, generate a random ID.
-	if len(id) < 6 {
-		sendErrorResponse(w, "ID should be min 6 chars.", http.StatusBadRequest, nil)
-		return
-	} else if id == "" {
+	if id == "" {
 		if i, err := generateRandomString(32, alphaNumChars); err != nil {
 			app.lo.Error("error generating ID", "error", err)
 			sendErrorResponse(w, "Error generating ID.", http.StatusInternalServerError, nil)

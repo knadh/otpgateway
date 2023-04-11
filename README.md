@@ -162,6 +162,8 @@ or an error such as
 { "status": "error", "message": "OTP not verified" }
 ```
 
+The `closed` field indicates whether the OTP has been validated by the user and has been "closed".
+
 # Javascript plugin
 
 The gateway comes with a Javascript plugin that enables easy integration of the verification UI into existing applications. Once a server side call to generate an OTP is made and a namespace and id are obtained, calling `OTPGateway()` opens the verification UI in a modal popup. Upon completion of verification by the user, a callback is triggered.

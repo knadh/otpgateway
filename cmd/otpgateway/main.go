@@ -79,6 +79,7 @@ func main() {
 	r.Get("/api/health", wrap(app, handleHealthCheck))
 	r.Put("/api/otp/{id}", auth(authCreds, wrap(app, handleSetOTP)))
 	r.Post("/api/otp/{id}/status", auth(authCreds, wrap(app, handleCheckOTPStatus)))
+	r.Delete("/api/otp/{id}/status", auth(authCreds, wrap(app, handleCheckOTPStatus)))
 	r.Post("/api/otp/{id}", auth(authCreds, wrap(app, handleVerifyOTP)))
 
 	r.Get("/otp/{namespace}/{id}", wrap(app, handleOTPView))

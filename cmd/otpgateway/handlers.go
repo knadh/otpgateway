@@ -271,6 +271,11 @@ func handleCheckOTPStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if out.Closed {
+		// Delete otp
+		if r.Method == http.MethodDelete {
+			app.store.Delete(namespace, id)
+		}
+
 		sendResponse(w, out)
 		return
 	}

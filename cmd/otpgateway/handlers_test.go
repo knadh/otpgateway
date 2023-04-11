@@ -129,6 +129,7 @@ func init() {
 	r.Get("/api/health", auth(authCreds, wrap(app, handleHealthCheck)))
 	r.Put("/api/otp/{id}", auth(authCreds, wrap(app, handleSetOTP)))
 	r.Post("/api/otp/{id}", auth(authCreds, wrap(app, handleVerifyOTP)))
+	r.Delete("/api/otp/{id}/status", auth(authCreds, wrap(app, handleCheckOTPStatus)))
 	r.Get("/otp/{namespace}/{id}", wrap(app, handleOTPView))
 	r.Post("/otp/{namespace}/{id}", wrap(app, handleOTPView))
 	srv = httptest.NewServer(r)
@@ -272,6 +273,46 @@ func TestCheckOTPAttempts(t *testing.T) {
 	// Rate limited.
 	cp.Set("skip_delete", "true")
 	assert.Equal(t, http.StatusTooManyRequests, r.StatusCode, "bad OTPs didn't get rate limited")
+}
+
+func TestDeleteOnOTPCheck(t *testing.T) {
+	rdis.FlushDB()
+	var (
+		data = &otpResp{}
+		out  = httpResp{
+			Data: data,
+		}
+		p = url.Values{}
+	)
+	p.Set("id", dummyOTPID)
+	p.Set("otp", dummyOTP)
+	p.Set("max_attempts", "5")
+	p.Set("to", dummyToAddress)
+	p.Set("provider", dummyProvider)
+
+	// Register OTP.
+	r := testRequest(t, http.MethodPut, "/api/otp/"+dummyOTPID, p, &out)
+	assert.Equal(t, http.StatusOK, r.StatusCode, "otp registration failed")
+
+	// Verification pending before otp status check.
+	r = testRequest(t, http.MethodDelete, "/api/otp/"+dummyOTPID+"/status", nil, &data)
+	assert.Equal(t, http.StatusBadRequest, r.StatusCode, "verification pending")
+
+	cp := url.Values{}
+	cp.Set("otp", dummyOTP)
+	cp.Set("skip_delete", "true")
+
+	// Verify (done by the otpgateway module).
+	r = testRequest(t, http.MethodPost, "/api/otp/"+dummyOTPID, cp, &data)
+	assert.Equal(t, http.StatusOK, r.StatusCode, "verification failed")
+
+	// Delete on status check
+	r = testRequest(t, http.MethodDelete, "/api/otp/"+dummyOTPID+"/status", nil, &data)
+	assert.Equal(t, http.StatusOK, r.StatusCode, "verification pending")
+
+	// Reattempt status check
+	r = testRequest(t, http.MethodDelete, "/api/otp/"+dummyOTPID+"/status", nil, &data)
+	assert.Equal(t, http.StatusBadRequest, r.StatusCode, "otp not found")
 }
 
 func testRequest(t *testing.T, method, path string, p url.Values, out interface{}) *http.Response {

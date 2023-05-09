@@ -66,6 +66,7 @@
         <p>
             <a href="{{ .OTPURL }}">Click here</a> to complete the verification.
         </p>
+        <p style="font-size: 0.875em; color: #aaa">Valid for {{ .OTPTTL.Minutes }} minutes.</p>
     </div>
     <div class="gutter">&nbsp;</div>
 </body>

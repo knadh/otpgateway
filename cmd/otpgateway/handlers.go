@@ -17,7 +17,6 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/knadh/otpgateway/v3/internal/store"
 	"github.com/knadh/otpgateway/v3/pkg/models"
-	"github.com/zerodha/logf"
 )
 
 const (
@@ -74,6 +73,7 @@ type pushTpl struct {
 	Channel   string
 	OTP       string
 	OTPURL    string
+	OTPTTL    time.Duration
 }
 
 // handleGetProviders returns the list of available message providers.
@@ -233,7 +233,7 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 
 	// Push the OTP out.
 	if to != "" {
-		if err := push(app.lo, newOTP, p, app.constants.RootURL); err != nil {
+		if err := push(newOTP, p, app.constants.RootURL, app); err != nil {
 			app.lo.Error("error sending OTP", "error", err, "provider", p.provider.ID())
 			sendErrorResponse(w, "Error sending OTP.", http.StatusInternalServerError, nil)
 			return
@@ -395,7 +395,7 @@ func handleOTPView(w http.ResponseWriter, r *http.Request) {
 	// It's a resend request.
 	if action == actResend {
 		msg = "OTP resent"
-		if err := push(app.lo, out, pro, app.constants.RootURL); err != nil {
+		if err := push(out, pro, app.constants.RootURL, app); err != nil {
 			app.lo.Error("error sending OTP", "error", err, "provider", pro.provider.ID())
 			otpErr = errors.New("error resending OTP.")
 		}
@@ -495,7 +495,7 @@ func handleAddressView(w http.ResponseWriter, r *http.Request) {
 			msg = err.Error()
 		} else {
 			out.To = to
-			if err := push(app.lo, out, pro, app.constants.RootURL); err != nil {
+			if err := push(out, pro, app.constants.RootURL, app); err != nil {
 				app.lo.Error("error sending OTP", "error", err, "provider", pro.provider.ID())
 				msg = "error sending OTP"
 			} else {
@@ -606,7 +606,7 @@ func isLocked(otp models.OTP) bool {
 }
 
 // push compiles a message template and pushes it to the provider.
-func push(lo logf.Logger, otp models.OTP, p *provider, rootURL string) error {
+func push(otp models.OTP, p *provider, rootURL string, app *App) error {
 	var (
 		subj = &bytes.Buffer{}
 		out  = &bytes.Buffer{}
@@ -617,6 +617,7 @@ func push(lo logf.Logger, otp models.OTP, p *provider, rootURL string) error {
 			To:        otp.To,
 			OTP:       otp.OTP,
 			OTPURL:    getURL(rootURL, otp, true),
+			OTPTTL:    app.constants.OtpTTL,
 		}
 	)
 
@@ -634,7 +635,7 @@ func push(lo logf.Logger, otp models.OTP, p *provider, rootURL string) error {
 		}
 	}
 
-	lo.Debug("sending otp", "to", otp.To, "provider", p.provider.ID(), "namespace", otp.Namespace)
+	app.lo.Debug("sending otp", "to", otp.To, "provider", p.provider.ID(), "namespace", otp.Namespace)
 	return p.provider.Push(otp, subj.String(), out.Bytes())
 }
 

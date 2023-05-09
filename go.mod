@@ -3,6 +3,7 @@ module github.com/knadh/otpgateway/v3
 go 1.19
 
 require (
+	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/alicebob/miniredis v2.4.5+incompatible
 	github.com/aws/aws-sdk-go v1.41.9
 	github.com/go-chi/chi v4.1.2+incompatible
@@ -16,9 +17,14 @@ require (
 )
 
 require (
+	github.com/Masterminds/goutils v1.1.1 // indirect
+	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/alicebob/gopher-json v0.0.0-20180125190556-5a6b3ba71ee6 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
+	github.com/google/uuid v1.1.1 // indirect
+	github.com/huandu/xstrings v1.3.3 // indirect
+	github.com/imdario/mergo v0.3.11 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
@@ -27,6 +33,7 @@ require (
 	github.com/pelletier/go-toml v1.7.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/yuin/gopher-lua v0.0.0-20190125051437-7b9317363aa9 // indirect
-	golang.org/x/sys v0.0.0-20210423082822-04245dca01da // indirect
+	golang.org/x/crypto v0.3.0 // indirect
+	golang.org/x/sys v0.2.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

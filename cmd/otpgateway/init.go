@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"html/template"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/Masterminds/sprig"
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/toml"
 	"github.com/knadh/koanf/providers/env"
@@ -232,7 +234,9 @@ func initProviderTpl(subj, tplFile string) *providerTpl {
 	// Template file.
 	if tplFile != "" {
 		// Parse the template file.
-		tpl, err := template.ParseFiles(tplFile)
+		// tpl, err := template.ParseFiles(tplFile)
+
+		tpl, err := template.New(filepath.Base(tplFile)).Funcs(sprig.FuncMap()).ParseFiles(tplFile)
 
 		if err != nil {
 			lo.Fatalf("error parsing template file: %s: %v", tplFile, err)

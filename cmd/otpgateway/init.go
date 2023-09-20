@@ -9,11 +9,11 @@ import (
 	"time"
 
 	"github.com/Masterminds/sprig"
-	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/toml"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/providers/posflag"
+	"github.com/knadh/koanf/v2"
 	"github.com/knadh/otpgateway/v3/internal/providers/kaleyra"
 	"github.com/knadh/otpgateway/v3/internal/providers/pinpoint"
 	"github.com/knadh/otpgateway/v3/internal/providers/smtp"

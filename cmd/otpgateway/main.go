@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-chi/chi"
-	"github.com/knadh/koanf"
+	"github.com/go-chi/chi/v5"
+	"github.com/knadh/koanf/v2"
 	"github.com/knadh/otpgateway/v3/internal/store"
 	"github.com/knadh/otpgateway/v3/internal/store/redis"
 	"github.com/knadh/stuffbin"

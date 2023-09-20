@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"html/template"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/alicebob/miniredis"
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 	"github.com/knadh/otpgateway/v3/internal/store/redis"
 	"github.com/knadh/otpgateway/v3/pkg/models"
 	"github.com/stretchr/testify/assert"
@@ -332,7 +332,7 @@ func testRequest(t *testing.T, method, path string, p url.Values, out interface{
 		return nil
 	}
 
-	respBody, err := ioutil.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatal(err)
 		return nil

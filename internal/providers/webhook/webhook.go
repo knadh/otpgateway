@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -138,7 +137,7 @@ func (w *Webhook) Push(otp models.OTP, subject string, body []byte) error {
 	}
 	defer func() {
 		// Drain and close the body to let the Transport reuse the connection
-		io.Copy(ioutil.Discard, resp.Body)
+		io.Copy(io.Discard, resp.Body)
 		resp.Body.Close()
 	}()
 

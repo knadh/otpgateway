@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"html/template"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -332,7 +332,7 @@ func testRequest(t *testing.T, method, path string, p url.Values, out interface{
 		return nil
 	}
 
-	respBody, err := ioutil.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatal(err)
 		return nil

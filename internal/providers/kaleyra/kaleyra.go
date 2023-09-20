@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -139,7 +139,7 @@ func (k *Kaleyra) Push(otp models.OTP, subject string, body []byte) error {
 	defer resp.Body.Close()
 
 	// Read the response.
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}

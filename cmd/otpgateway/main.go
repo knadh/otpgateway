@@ -58,6 +58,11 @@ func main() {
 	ko.UnmarshalWithConf("store.redis", &rc, koanf.UnmarshalConf{Tag: "json"})
 	app.store = redis.New(rc)
 
+	// Check if the Redis server is available by sending a Ping.
+	if err := app.store.Ping(); err != nil {
+		log.Fatalf("failed to connect to redis: %v", err)
+	}
+
 	// Compile static templates.
 	tpl, err := stuffbin.ParseTemplatesGlob(nil, app.fs, "/static/*.html")
 	if err != nil {

@@ -10,6 +10,7 @@ import (
 	"github.com/knadh/otpgateway/v3/internal/store"
 	"github.com/knadh/otpgateway/v3/pkg/models"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -43,63 +44,77 @@ func init() {
 	})
 }
 
-func reset(t *testing.T) {
+func setup(t *testing.T) *Redis {
 	rdis.FlushDB()
 	_, err := rStore.Set(mockOTP.Namespace, mockOTP.ID, mockOTP)
-	assert.Equal(t, nil, err, "error setting OTP")
+	require.NoError(t, err, "Failed to set up test OTP")
+
+	t.Cleanup(func() {
+		rdis.FlushDB()
+	})
+
+	return rStore
 }
 
 func TestStoreSet(t *testing.T) {
-	rdis.FlushDB()
+	rStore := setup(t)
+
 	resp, err := rStore.Set(mockOTP.Namespace, mockOTP.ID, mockOTP)
-	assert.Equal(t, nil, err, "error setting OTP")
+	assert.NoError(t, err, "Error setting OTP")
 
 	cmp := mockOTP
 	// Override dynamic values.
 	cmp.Attempts = resp.Attempts
 	cmp.TTL = resp.TTL
 	cmp.TTLSeconds = resp.TTLSeconds
-	assert.Equal(t, cmp, resp, "OTP doesn't match")
+	assert.Equal(t, cmp, resp, "Returned OTP doesn't match expected OTP")
 }
 
 func TestStoreCheck(t *testing.T) {
-	reset(t)
+	rStore := setup(t)
 
-	// Don't increment.
-	o, _ := rStore.Check(mockOTP.Namespace, mockOTP.ID, false)
-	assert.Equal(t, 1, o.Attempts, "attempts incorrectly incremented")
+	t.Run("no increment", func(t *testing.T) {
+		o, err := rStore.Check(mockOTP.Namespace, mockOTP.ID, false)
+		assert.NoError(t, err, "Error checking OTP without increment")
+		assert.Equal(t, 1, o.Attempts, "Unexpected attempt count")
+	})
 
-	// Increment.
-	o, _ = rStore.Check(mockOTP.Namespace, mockOTP.ID, true)
-	assert.Equal(t, 2, o.Attempts, "attempts didn't increment")
+	t.Run("with increment", func(t *testing.T) {
+		o, err := rStore.Check(mockOTP.Namespace, mockOTP.ID, true)
+		assert.NoError(t, err, "Error checking OTP with increment")
+		assert.Equal(t, 2, o.Attempts, "Unexpected attempt count after first increment")
 
-	o, _ = rStore.Check(mockOTP.Namespace, mockOTP.ID, true)
-	assert.Equal(t, 3, o.Attempts, "attempts didn't increment")
+		o, err = rStore.Check(mockOTP.Namespace, mockOTP.ID, true)
+		assert.NoError(t, err, "Error checking OTP with second increment")
+		assert.Equal(t, 3, o.Attempts, "Unexpected attempt count after second increment")
+	})
 }
 
 func TestStoreTTL(t *testing.T) {
-	reset(t)
+	rStore := setup(t)
 
-	// Check if the OTP has expired.
 	o, err := rStore.Check(mockOTP.Namespace, mockOTP.ID, false)
-	assert.Equal(t, nil, err, "error checking OTP")
-	assert.Equal(t, mockOTP.TTL, o.TTL, "TTL doesn't match")
+	assert.NoError(t, err, "Error checking OTP")
+	assert.Equal(t, mockOTP.TTL, o.TTL, "Returned OTP TTL doesn't match expected TTL")
 }
+
 func TestStoreClose(t *testing.T) {
-	reset(t)
+	rStore := setup(t)
 
 	err := rStore.Close(mockOTP.Namespace, mockOTP.ID)
-	assert.Equal(t, nil, err, "error closing OTP")
+	assert.NoError(t, err, "Error closing OTP")
 
 	o, err := rStore.Check(mockOTP.Namespace, mockOTP.ID, false)
-	assert.Equal(t, true, o.Closed, "OTP didn't close")
+	assert.NoError(t, err, "Error checking closed OTP")
+	assert.True(t, o.Closed, "OTP should be closed but isn't")
 }
+
 func TestStoreDelete(t *testing.T) {
-	reset(t)
+	rStore := setup(t)
 
 	err := rStore.Delete(mockOTP.Namespace, mockOTP.ID)
-	assert.Equal(t, nil, err, "error deleting OTP")
+	assert.NoError(t, err, "Error deleting OTP")
 
 	_, err = rStore.Check(mockOTP.Namespace, mockOTP.ID, false)
-	assert.Equal(t, store.ErrNotExist, err, "OTP wasn't deleted")
+	assert.Equal(t, store.ErrNotExist, err, "OTP should not exist but it does")
 }

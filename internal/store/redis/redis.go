@@ -54,6 +54,7 @@ func New(c Conf) *Redis {
 		Addr:         fmt.Sprintf("%s:%d", c.Host, c.Port),
 		Username:     c.Username,
 		Password:     c.Password,
+		ClientName:   "otpgateway",
 		DB:           c.DB,
 		DialTimeout:  c.Timeout,
 		WriteTimeout: c.Timeout,

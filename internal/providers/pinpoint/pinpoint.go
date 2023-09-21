@@ -1,17 +1,18 @@
 package pinpoint
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"regexp"
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/pinpoint"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/pinpoint"
+	"github.com/aws/aws-sdk-go-v2/service/pinpoint/types"
 	"github.com/knadh/otpgateway/v3/pkg/models"
 )
 
@@ -23,43 +24,40 @@ const (
 	maxOTPlen     = 6
 )
 
-var (
-	channelType = "SMS"
-)
-
 var reNum = regexp.MustCompile(`\+?([0-9]){8,15}`)
 
 // PinpointSMS implements the AWS PinpointSMS SMS provider.
 type PinpointSMS struct {
 	cfg Config
-	p   *pinpoint.Pinpoint
+	p   *pinpoint.Client
 }
 
 type Config struct {
-	ApplicationID    string `json:"application_id"`
-	AccessKey        string `json:"access_key"`
-	SecretKey        string `json:"secret_key"`
-	Region           string `json:"region"`
-	SMSSenderID      string `json:"sms_sender_id"`
-	SMSMessageType   string `json:"sms_message_type"`
-	SMSEntityID      string `json:"sms_entity_id"`
-	SMSTemplateID    string `json:"sms_template_id"`
-	DefaultPhoneCode string `json:"default_phone_code"`
-
-	MaxConns int           `json:"max_conns"`
-	Timeout  time.Duration `json:"timeout"`
+	ApplicationID    string        `json:"application_id"`
+	AccessKey        string        `json:"access_key"`
+	SecretKey        string        `json:"secret_key"`
+	Region           string        `json:"region"`
+	SMSSenderID      string        `json:"sms_sender_id"`
+	SMSMessageType   string        `json:"sms_message_type"`
+	SMSEntityID      string        `json:"sms_entity_id"`
+	SMSTemplateID    string        `json:"sms_template_id"`
+	DefaultPhoneCode string        `json:"default_phone_code"`
+	MaxConns         int           `json:"max_conns"`
+	Timeout          time.Duration `json:"timeout"`
 }
 
 // NewSMS returns an instance of the SMS package. cfg is configuration
 // represented as a JSON string. Supported options are.
-// {
-// 	AppID: "", // Application ID for amazon pinpoint service,
-// 	AWSAccessKey: "", // AWS access key,
-// 	AWSSecretKey: "", // AWS secret key,
-// 	AWSRegion: "", // AWS region name,
-// 	MessageType: "", // MessageType to signify if it is transactional sms,
-// 	SenderID: "" // Unique sender id
-// }
+//
+//	{
+//		AppID: "", // Application ID for amazon pinpoint service,
+//		AWSAccessKey: "", // AWS access key,
+//		AWSSecretKey: "", // AWS secret key,
+//		AWSRegion: "", // AWS region name,
+//		MessageType: "", // MessageType to signify if it is transactional or promotional sms,
+//		SenderID: "" // Unique sender id
+//	}
+
 func NewSMS(cfg Config) (*PinpointSMS, error) {
 	if cfg.ApplicationID == "" {
 		return nil, errors.New("invalid application_id")
@@ -81,21 +79,20 @@ func NewSMS(cfg Config) (*PinpointSMS, error) {
 		cfg.Timeout = time.Second * 3
 	}
 
-	p := pinpoint.New(session.Must(session.NewSession()),
-		aws.NewConfig().
-			WithCredentials(credentials.NewStaticCredentials(cfg.AccessKey, cfg.SecretKey, "")).
-			WithRegion(cfg.Region).
-			WithHTTPClient(&http.Client{
-				Timeout: cfg.Timeout,
-				Transport: &http.Transport{
-					MaxIdleConnsPerHost:   cfg.MaxConns,
-					IdleConnTimeout:       90 * time.Second,
-					ResponseHeaderTimeout: cfg.Timeout,
-				},
-			}),
-	)
+	// Validate SMSMessageType
+	if cfg.SMSMessageType != string(types.MessageTypeTransactional) && cfg.SMSMessageType != string(types.MessageTypePromotional) {
+		return nil, errors.New("invalid SMSMessageType: must be TRANSACTIONAL or PROMOTIONAL")
+	}
 
-	return &PinpointSMS{cfg: cfg, p: p}, nil
+	cfgAws, err := config.LoadDefaultConfig(context.TODO(),
+		config.WithRegion(cfg.Region),
+		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(cfg.AccessKey, cfg.SecretKey, "")),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &PinpointSMS{cfg: cfg, p: pinpoint.NewFromConfig(cfgAws)}, nil
 }
 
 // ID returns the Provider's ID.
@@ -133,34 +130,29 @@ func (p *PinpointSMS) ValidateAddress(to string) error {
 	return nil
 }
 
-// Push pushes out an SMS.
 func (p *PinpointSMS) Push(otp models.OTP, subject string, body []byte) error {
-	msg := string(body)
-
-	payload := &pinpoint.SendMessagesInput{
-		ApplicationId: &p.cfg.ApplicationID,
-		MessageRequest: &pinpoint.MessageRequest{
-			Addresses: map[string]*pinpoint.AddressConfiguration{
-				p.sanitizePhone(otp.To): &pinpoint.AddressConfiguration{
-					ChannelType: &channelType,
+	input := &pinpoint.SendMessagesInput{
+		ApplicationId: aws.String(p.cfg.ApplicationID),
+		MessageRequest: &types.MessageRequest{
+			Addresses: map[string]types.AddressConfiguration{
+				p.sanitizePhone(otp.To): {
+					ChannelType: types.ChannelTypeSms,
 				},
 			},
-			MessageConfiguration: &pinpoint.DirectMessageConfiguration{
-				SMSMessage: &pinpoint.SMSMessage{
-					Body:        &msg,
-					MessageType: &p.cfg.SMSMessageType,
-					SenderId:    &p.cfg.SMSSenderID,
-					EntityId:    &p.cfg.SMSEntityID,
-					TemplateId:  &p.cfg.SMSTemplateID,
+			MessageConfiguration: &types.DirectMessageConfiguration{
+				SMSMessage: &types.SMSMessage{
+					Body:        aws.String(string(body)),
+					MessageType: types.MessageType(p.cfg.SMSMessageType),
+					SenderId:    aws.String(p.cfg.SMSSenderID),
+					EntityId:    aws.String(p.cfg.SMSEntityID),
+					TemplateId:  aws.String(p.cfg.SMSTemplateID),
 				},
 			},
 		},
 	}
-	if _, err := p.p.SendMessages(payload); err != nil {
-		return err
-	}
 
-	return nil
+	_, err := p.p.SendMessages(context.TODO(), input)
+	return err
 }
 
 // MaxAddressLen returns the maximum allowed length for the mobile number.

@@ -6,7 +6,7 @@ BUILDSTR := ${VERSION} (build "\\\#"${LAST_COMMIT} $(shell date '+%Y-%m-%d %H:%M
 GOPATH ?= $(HOME)/go
 STUFFBIN ?= $(GOPATH)/bin/stuffbin
 
-BIN := otpgateway
+BIN := otpgateway.bin
 STATIC := static/
 
 $(STUFFBIN):

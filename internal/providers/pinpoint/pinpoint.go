@@ -139,6 +139,9 @@ func (p *PinpointSMS) Push(otp models.OTP, subject string, body []byte) error {
 					ChannelType: types.ChannelTypeSms,
 				},
 			},
+			Context: map[string]string{
+				"namespace": otp.Namespace,
+			},
 			MessageConfiguration: &types.DirectMessageConfiguration{
 				SMSMessage: &types.SMSMessage{
 					Body:        aws.String(string(body)),

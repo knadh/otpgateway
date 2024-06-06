@@ -602,6 +602,10 @@ func isLocked(otp models.OTP) bool {
 	if otp.Attempts >= otp.MaxAttempts {
 		return true
 	}
+
+	if otp.OtpAttempts > otp.MaxAttempts {
+		return true
+	}
 	return false
 }
 

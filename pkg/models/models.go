@@ -17,6 +17,7 @@ type OTP struct {
 	OTP         string          `redis:"otp" json:"otp"`
 	MaxAttempts int             `redis:"max_attempts" json:"max_attempts"`
 	Attempts    int             `redis:"attempts" json:"attempts"`
+	OtpAttempts int             `redis:"otp_attempts" json:"otp_attempts"`
 	Closed      bool            `redis:"closed" json:"closed"`
 	TTL         time.Duration   `redis:"-" json:"-"`
 	TTLSeconds  float64         `redis:"-" json:"ttl"`

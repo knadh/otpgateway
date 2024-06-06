@@ -88,14 +88,14 @@ func (r *Redis) Check(namespace, id string, counter bool) (models.OTP, error) {
 
 	// Increment attempts and get TTL.
 	pipe := r.client.TxPipeline()
-	attempts := pipe.HIncrBy(ctx, key, "attempts", 1)
+	attempts := pipe.HIncrBy(ctx, key, "otp_attempts", 1)
 	ttl := pipe.TTL(ctx, key)
 	_, err = pipe.Exec(ctx)
 	if err != nil {
 		return out, err
 	}
 
-	out.Attempts = int(attempts.Val())
+	out.OtpAttempts = int(attempts.Val())
 	out.TTL = ttl.Val()
 
 	// If there's a configured PublishKey, publish the event.
@@ -135,6 +135,7 @@ func (r *Redis) Set(namespace, id string, otp models.OTP) (models.OTP, error) {
 				"max_attempts", otp.MaxAttempts)
 
 			pipe.HIncrBy(ctx, key, "attempts", 1)
+			pipe.HIncrBy(ctx, key, "otp_attempts", 1)
 			pipe.PExpire(ctx, key, time.Duration(exp)*time.Millisecond)
 			return nil
 		})

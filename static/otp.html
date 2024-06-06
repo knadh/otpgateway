@@ -21,10 +21,9 @@
             {{ if .Message }}
                 <p class="error">{{ .Message }}</p>
             {{ end }}
-
             <div class="stats">
                 <span class="attempts">
-                    <span class="pulse">{{ .OTP.Attempts }}</span> / {{ .OTP.MaxAttempts }} attempts
+                    <span class="pulse">{{ .OTP.OtpAttempts }}</span> / {{ .OTP.MaxAttempts }} attempts
                 </span>
                 &mdash; <span id="time">0</span> seconds remaining
             </div>

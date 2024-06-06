@@ -10,6 +10,12 @@ import (
 // does not exist.
 var ErrNotExist = errors.New("the OTP does not exist")
 
+const (
+	CounterAttempts = "attempts"
+	CounterGenerate = "generate"
+	CounterNil      = ""
+)
+
 // Store represents a storage backend where OTP data is stored.
 type Store interface {
 	// Set sets an OTP against an ID. Every Set() increments the attempts
@@ -21,7 +27,7 @@ type Store interface {
 
 	// Check checks the attempt count and TTL duration against an ID.
 	// Passing counter=true increments the attempt counter.
-	Check(namespace, id string, counter bool) (models.OTP, error)
+	Check(namespace, id string, counterKey string) (models.OTP, error)
 
 	// Close closes an OTP and marks it as done (verified).
 	// After this, the OTP has to expire after a TTL or be deleted.

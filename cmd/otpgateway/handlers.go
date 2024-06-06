@@ -116,6 +116,7 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 		addressDesc    = r.FormValue("address_description")
 		rawTTL         = r.FormValue("ttl")
 		rawMaxAttempts = r.FormValue("max_attempts")
+		rawMaxGenerate = r.FormValue("max_generate")
 		extra          = []byte(r.FormValue("extra"))
 		to             = r.FormValue("to")
 		otpVal         = r.FormValue("otp")
@@ -160,6 +161,16 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 		maxAttempts = v
 	}
 
+	maxGenerate := app.constants.OtpMaxGenerate
+	if rawMaxGenerate != "" {
+		v, err := strconv.Atoi(rawMaxGenerate)
+		if err != nil || v < 1 {
+			sendErrorResponse(w, "Invalid `max_attempts` value.", http.StatusBadRequest, nil)
+			return
+		}
+		maxGenerate = v
+	}
+
 	// If there's extra data, make sure it's JSON.
 	if len(extra) > 0 {
 		var tmp interface{}
@@ -194,7 +205,7 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if the OTP attempts have exceeded the quota.
-	otp, err := app.store.Check(namespace, id, false)
+	otp, err := app.store.Check(namespace, id, store.CounterNil)
 	if err != nil && err != store.ErrNotExist {
 		app.lo.Error("error checking OTP status", "error", err)
 		sendErrorResponse(w, "Error checking OTP status.", http.StatusBadRequest, nil)
@@ -224,6 +235,7 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 		Provider:    provider,
 		TTL:         ttl,
 		MaxAttempts: maxAttempts,
+		MaxGenerate: maxGenerate,
 	})
 	if err != nil {
 		app.lo.Error("error setting OTP", "error", err)
@@ -258,7 +270,7 @@ func handleCheckOTPStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check the OTP status.
-	out, err := app.store.Check(namespace, id, false)
+	out, err := app.store.Check(namespace, id, store.CounterNil)
 	if err != nil {
 		if err == store.ErrNotExist {
 			sendErrorResponse(w, err.Error(), http.StatusBadRequest, nil)
@@ -335,10 +347,10 @@ func handleOTPView(w http.ResponseWriter, r *http.Request) {
 
 	if action == "" {
 		// Render the view without incrementing attempts.
-		out, otpErr = app.store.Check(namespace, id, false)
+		out, otpErr = app.store.Check(namespace, id, store.CounterNil)
 	} else if action == actResend {
 		// Fetch the OTP for resending.
-		out, otpErr = app.store.Check(namespace, id, true)
+		out, otpErr = app.store.Check(namespace, id, store.CounterGenerate)
 	} else {
 		// Validate the attempt.
 		out, otpErr = verifyOTP(namespace, id, otp, false, app)
@@ -425,7 +437,7 @@ func handleGetOTPClosed(w http.ResponseWriter, r *http.Request) {
 		id        = chi.URLParam(r, "id")
 	)
 
-	out, err := app.store.Check(namespace, id, false)
+	out, err := app.store.Check(namespace, id, store.CounterNil)
 	if err != nil {
 		if err == store.ErrNotExist {
 			sendErrorResponse(w, "Session expired.", http.StatusBadRequest, nil)
@@ -451,7 +463,7 @@ func handleAddressView(w http.ResponseWriter, r *http.Request) {
 		to        = r.FormValue("to")
 	)
 
-	out, err := app.store.Check(namespace, id, false)
+	out, err := app.store.Check(namespace, id, store.CounterNil)
 	if err != nil {
 		if err == store.ErrNotExist {
 			app.tpl.ExecuteTemplate(w, "message", webviewTpl{App: app.constants,
@@ -520,7 +532,7 @@ func handleAddressView(w http.ResponseWriter, r *http.Request) {
 // verifyOTP validates an OTP against user input.
 func verifyOTP(namespace, id, otp string, deleteOnVerify bool, app *App) (models.OTP, error) {
 	// Check the OTP.
-	out, err := app.store.Check(namespace, id, true)
+	out, err := app.store.Check(namespace, id, store.CounterAttempts)
 	if err != nil {
 		if err != store.ErrNotExist {
 			app.lo.Error("error checking OTP", "error", err)
@@ -599,11 +611,11 @@ func generateRandomString(totalLen int, chars string) (string, error) {
 
 // isLocked tells if an OTP is locked after exceeding attempts.
 func isLocked(otp models.OTP) bool {
-	if otp.Attempts >= otp.MaxAttempts {
+	if otp.Attempts > otp.MaxAttempts {
 		return true
 	}
 
-	if otp.OtpAttempts > otp.MaxAttempts {
+	if otp.Generate > otp.MaxGenerate {
 		return true
 	}
 	return false

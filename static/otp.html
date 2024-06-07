@@ -21,7 +21,6 @@
             {{ if .Message }}
                 <p class="error">{{ .Message }}</p>
             {{ end }}
-
             <div class="stats">
                 <span class="attempts">
                     <span class="pulse">{{ .OTP.Attempts }}</span> / {{ .OTP.MaxAttempts }} attempts

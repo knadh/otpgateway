@@ -116,6 +116,7 @@ func init() {
 		constants: constants{
 			OtpTTL:         10 * time.Second,
 			OtpMaxAttempts: 10,
+			OtpMaxGenerate: 10,
 		},
 		store: redis.New(redis.Conf{
 			Host: rd.Host(),
@@ -248,6 +249,7 @@ func TestCheckOTPAttempts(t *testing.T) {
 	p.Set("id", dummyOTPID)
 	p.Set("otp", dummyOTP)
 	p.Set("max_attempts", "5")
+	p.Set("max_generate", "5")
 	p.Set("to", dummyToAddress)
 	p.Set("provider", dummyProvider)
 
@@ -287,6 +289,7 @@ func TestDeleteOnOTPCheck(t *testing.T) {
 	p.Set("id", dummyOTPID)
 	p.Set("otp", dummyOTP)
 	p.Set("max_attempts", "5")
+	p.Set("max_generate", "5")
 	p.Set("to", dummyToAddress)
 	p.Set("provider", dummyProvider)
 

@@ -72,14 +72,14 @@ func (r *Redis) Ping() error {
 }
 
 // Check checks the attempt count and TTL duration against an ID.
-// Passing count=true increments the attempt counter.
-func (r *Redis) Check(namespace, id string, counter bool) (models.OTP, error) {
+// Passing counterKey increments the attempt counter.
+func (r *Redis) Check(namespace, id string, counterKey string) (models.OTP, error) {
 	// Retrieve the OTP information.
 	out, err := r.get(namespace, id)
 	if err != nil {
 		return out, err
 	}
-	if !counter {
+	if counterKey == store.CounterNil {
 		return out, err
 	}
 
@@ -88,14 +88,22 @@ func (r *Redis) Check(namespace, id string, counter bool) (models.OTP, error) {
 
 	// Increment attempts and get TTL.
 	pipe := r.client.TxPipeline()
-	attempts := pipe.HIncrBy(ctx, key, "attempts", 1)
+	attempts := pipe.HIncrBy(ctx, key, counterKey, 1)
 	ttl := pipe.TTL(ctx, key)
 	_, err = pipe.Exec(ctx)
 	if err != nil {
 		return out, err
 	}
 
-	out.Attempts = int(attempts.Val())
+	switch counterKey {
+	case store.CounterAttempts:
+		out.Attempts = int(attempts.Val())
+	case store.CounterGenerate:
+		out.Generate = int(attempts.Val())
+	default:
+		return out, store.ErrNotExist
+	}
+	// out.Attempts = int(attempts.Val())
 	out.TTL = ttl.Val()
 
 	// If there's a configured PublishKey, publish the event.
@@ -132,9 +140,11 @@ func (r *Redis) Set(namespace, id string, otp models.OTP) (models.OTP, error) {
 				"extra", string(otp.Extra),
 				"provider", otp.Provider,
 				"closed", false,
-				"max_attempts", otp.MaxAttempts)
+				"max_attempts", otp.MaxAttempts,
+				"max_generate", otp.MaxGenerate)
 
-			pipe.HIncrBy(ctx, key, "attempts", 1)
+			pipe.HIncrBy(ctx, key, store.CounterAttempts, 1)
+			pipe.HIncrBy(ctx, key, store.CounterGenerate, 1)
 			pipe.PExpire(ctx, key, time.Duration(exp)*time.Millisecond)
 			return nil
 		})
@@ -149,12 +159,18 @@ func (r *Redis) Set(namespace, id string, otp models.OTP) (models.OTP, error) {
 	}
 
 	// Retrieve the updated attempts count to update the OTP struct.
-	attempts, err := r.client.HGet(ctx, key, "attempts").Int()
+	generate, err := r.client.HGet(ctx, key, store.CounterGenerate).Int()
+	if err != nil {
+		return otp, err
+	}
+
+	attempts, err := r.client.HGet(ctx, key, store.CounterAttempts).Int()
 	if err != nil {
 		return otp, err
 	}
 
 	otp.Attempts = attempts
+	otp.Generate = generate
 	otp.TTLSeconds = otp.TTL.Seconds()
 	otp.Namespace = namespace
 	otp.ID = id

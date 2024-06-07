@@ -47,6 +47,7 @@ func main() {
 		constants: constants{
 			OtpTTL:         ko.MustDuration("app.otp_ttl") * time.Second,
 			OtpMaxAttempts: ko.MustInt("app.otp_max_attempts"),
+			OtpMaxGenerate: ko.MustInt("app.otp_max_generate"),
 			RootURL:        strings.TrimRight(ko.String("app.root_url"), "/"),
 			LogoURL:        ko.String("app.logo_url"),
 			FaviconURL:     ko.String("app.favicon_url"),

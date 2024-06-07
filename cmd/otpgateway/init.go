@@ -37,6 +37,7 @@ func initLogger(debug bool) logf.Logger {
 type constants struct {
 	OtpTTL         time.Duration
 	OtpMaxAttempts int
+	OtpMaxGenerate int
 
 	// Exported to templates.
 	RootURL    string

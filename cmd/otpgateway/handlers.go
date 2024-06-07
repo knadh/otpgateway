@@ -165,7 +165,7 @@ func handleSetOTP(w http.ResponseWriter, r *http.Request) {
 	if rawMaxGenerate != "" {
 		v, err := strconv.Atoi(rawMaxGenerate)
 		if err != nil || v < 1 {
-			sendErrorResponse(w, "Invalid `max_attempts` value.", http.StatusBadRequest, nil)
+			sendErrorResponse(w, "Invalid `max_generate` value.", http.StatusBadRequest, nil)
 			return
 		}
 		maxGenerate = v

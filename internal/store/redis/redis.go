@@ -88,22 +88,18 @@ func (r *Redis) Check(namespace, id string, counterKey string) (models.OTP, erro
 
 	// Increment attempts and get TTL.
 	pipe := r.client.TxPipeline()
-	pipe.HIncrBy(ctx, key, counterKey, 1)
+	attempts := pipe.HIncrBy(ctx, key, counterKey, 1)
 	ttl := pipe.TTL(ctx, key)
 	_, err = pipe.Exec(ctx)
-	if err != nil {
-		return out, err
-	}
-	attempts, err := r.client.HGet(ctx, key, counterKey).Int()
 	if err != nil {
 		return out, err
 	}
 
 	switch counterKey {
 	case store.CounterAttempts:
-		out.Attempts = attempts
+		out.Attempts = int(attempts.Val())
 	case store.CounterGenerate:
-		out.Generate = attempts
+		out.Generate = int(attempts.Val())
 	default:
 		return out, store.ErrNotExist
 	}

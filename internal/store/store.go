@@ -6,9 +6,14 @@ import (
 	"github.com/knadh/otpgateway/v3/pkg/models"
 )
 
-// ErrNotExist is thrown when an OTP (requested by namespace / ID)
-// does not exist.
-var ErrNotExist = errors.New("the OTP does not exist")
+var (
+	// ErrNotExist is thrown when an OTP (requested by namespace / ID)
+	// does not exist.
+	ErrNotExist = errors.New("the OTP does not exist")
+	// ErrTooManyAttempts is thrown when an OTP (requested by namespace / ID)
+	// attempts are maxed out.
+	ErrTooManyAttempts = errors.New("too many attempts")
+)
 
 const (
 	CounterAttempts = "attempts"

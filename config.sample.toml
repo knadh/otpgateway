@@ -31,11 +31,11 @@ publish_key = ""
 # Namespaces (application tenants) and tokens. OTPs are generated
 # under these namespaces and the OTP APIs require
 # namespace + secret as BasicAuth headers for authentication.
-[auth.my_app]
+[auth.MyApp]
 namespace = "MyApp"
 secret = "my_secret_token"
 
-[auth.my_app_2]
+[auth.MyOtherApp]
 namespace = "MyOtherApp"
 secret = "my_secret_token2"
 

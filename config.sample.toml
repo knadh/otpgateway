@@ -7,6 +7,7 @@ enable_debug_logs = true
 otp_ttl = 300
 otp_max_attempts = 5
 otp_max_resends = 3
+otp_max_generate = 3
 
 # The root URL where the OTPGateway server is running
 root_url = "http://localhost:9000"
@@ -30,13 +31,13 @@ publish_key = ""
 # Namespaces (application tenants) and tokens. OTPs are generated
 # under these namespaces and the OTP APIs require
 # namespace + secret as BasicAuth headers for authentication.
-[auth.MyApp]
+[auth.my_app]
 namespace = "MyApp"
-secret = "mySecretToken"
+secret = "my_secret_token"
 
-[auth.MyOtherApp]
+[auth.my_app_2]
 namespace = "MyOtherApp"
-secret = "myOtherSecretToken"
+secret = "my_secret_token2"
 
 
 # Built in providers and webhook.* provider definitions.
@@ -84,9 +85,11 @@ subject = ""
 template = "static/sms.txt"
 
 # Upstream provider config.
-sender = "ZRODHA"
-sid = ""
-api_key = ""
+sender = "YOURID"
+sid                = ""
+api_key            = ""
+sms_entity_id     = ""
+sms_template_id   = ""
 default_phone_code = "+91"
 
 max_conns = 10

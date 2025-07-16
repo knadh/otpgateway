@@ -67,16 +67,18 @@
         if(cbFinish) {
             window.addEventListener("message", (function() {
                 function handle(e) {
+                    // Make sure the origin matches.
                     if(e.origin.indexOf(_root) === -1) {
                         return;
                     }
-                    removeEventListener(e.type, handle);
 
-                    // Trigger the callback.
-                    if(e.data.hasOwnProperty("namespace") && e.data.hasOwnProperty("id")) {
+                    // Ensure the message is from the OTPGateway by checking its properties.
+                    // If so, remove the event listener, call the callback, and close the OTPGateway popup.
+                    if (e.data.hasOwnProperty("namespace") && e.data.hasOwnProperty("id")) {
+                        removeEventListener(e.type, handle);
                         cbFinish(e.data.namespace, e.data.id);
+                        close();
                     }
-                    close()
                 }
                 return handle;
             }()));

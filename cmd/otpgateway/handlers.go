@@ -322,6 +322,15 @@ func handleVerifyOTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if err == store.ErrTooManyAttempts {
+			code = http.StatusTooManyRequests
+			errMsg := fmt.Sprintf("Too many attempts. Please retry after %0.f seconds.",
+				out.TTL.Seconds())
+			err := errors.New(errMsg)
+			sendErrorResponse(w, err.Error(), code, nil)
+			return
+		}
+
 		if out.Closed {
 			code = http.StatusTooManyRequests
 		}
@@ -364,8 +373,17 @@ func handleOTPView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	isOtpLocked := false
 	// Attempts are maxed out and locked.
-	if isLocked(out) {
+	if action == actCheck {
+		if otpErr == store.ErrTooManyAttempts {
+			isOtpLocked = true
+		}
+	} else if isLocked(out) {
+		isOtpLocked = true
+	}
+
+	if isOtpLocked {
 		app.tpl.ExecuteTemplate(w, "message", webviewTpl{App: app.constants,
 			Title:       "Too many attempts",
 			Description: fmt.Sprintf("Please retry after %d seconds.", int64(out.TTLSeconds)),
@@ -538,20 +556,21 @@ func verifyOTP(namespace, id, otp string, deleteOnVerify bool, app *App) (models
 			app.lo.Error("error checking OTP", "error", err)
 			return out, err
 		}
-		return out, errors.New("error checking OTP.")
+		return out, errors.New("error checking OTP")
 	}
 
-	errMsg := ""
-	if isLocked(out) {
-		errMsg = fmt.Sprintf("Too many attempts. Please retry after %0.f seconds.",
-			out.TTL.Seconds())
-	} else if out.OTP != otp {
-		errMsg = "Incorrect OTP"
+	// Attempts exceeded for OTP
+	if out.Attempts > out.MaxAttempts {
+		return out, store.ErrTooManyAttempts
 	}
 
-	// There was an error.
-	if errMsg != "" {
-		return out, errors.New(errMsg)
+	// Final attempt with incorrect OTP
+	if out.Attempts == out.MaxAttempts && out.OTP != otp {
+		return out, store.ErrTooManyAttempts
+	}
+
+	if out.OTP != otp {
+		return out, errors.New("incorrect OTP")
 	}
 
 	// Delete the OTP?

@@ -534,11 +534,11 @@ func verifyOTP(namespace, id, otp string, deleteOnVerify bool, app *App) (models
 	// Check the OTP.
 	out, err := app.store.Check(namespace, id, store.CounterAttempts)
 	if err != nil {
-		if err != store.ErrNotExist {
-			app.lo.Error("error checking OTP", "error", err)
-			return out, err
+		if err == store.ErrNotExist {
+			return out, store.ErrNotExist
 		}
-		return out, errors.New("error checking OTP.")
+		app.lo.Error("error checking OTP", "error", err)
+		return out, errors.New("error checking OTP")
 	}
 
 	errMsg := ""

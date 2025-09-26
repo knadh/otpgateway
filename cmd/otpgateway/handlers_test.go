@@ -235,6 +235,14 @@ func TestCheckOTP(t *testing.T) {
 	// Check it again. Should be deleted.
 	r = testRequest(t, http.MethodPost, "/api/otp/"+dummyOTPID, cp, &data)
 	assert.NotEqual(t, http.StatusOK, r.StatusCode, "OTP didn't get deleted on verification")
+
+	// Check non-existent OTP, should not return 200.
+	r = testRequest(t, http.MethodPost, "/api/otp/abc123", cp, &data)
+	assert.NotEqual(t, http.StatusOK, r.StatusCode, "non-existent OTP didn't return 400")
+
+	// Check non-existent OTP, should return store.ErrNotExist error message.
+	_ = testRequest(t, http.MethodPost, "/api/otp/abc123", cp, &out)
+	assert.Equal(t, "the OTP does not exist", out.Message, "non-existent OTP passed")
 }
 
 func TestCheckOTPAttempts(t *testing.T) {

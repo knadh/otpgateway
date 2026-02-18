@@ -409,7 +409,7 @@ func handleOTPView(w http.ResponseWriter, r *http.Request) {
 		msg = "OTP resent"
 		if err := push(out, pro, app.constants.RootURL, app); err != nil {
 			app.lo.Error("error sending OTP", "error", err, "provider", pro.provider.ID())
-			otpErr = errors.New("error resending OTP.")
+			otpErr = errors.New("Error resending OTP.")
 		}
 	}
 
@@ -509,7 +509,7 @@ func handleAddressView(w http.ResponseWriter, r *http.Request) {
 			out.To = to
 			if err := push(out, pro, app.constants.RootURL, app); err != nil {
 				app.lo.Error("error sending OTP", "error", err, "provider", pro.provider.ID())
-				msg = "error sending OTP"
+				msg = "Error sending OTP."
 			} else {
 				http.Redirect(w, r, fmt.Sprintf(uriViewOTP, out.Namespace, out.ID),
 					http.StatusFound)
